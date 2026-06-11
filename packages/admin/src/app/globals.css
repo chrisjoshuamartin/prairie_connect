@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+@theme {
+  /* Prairie wheat-gold primary on the dark neutral base. */
+  --color-primary-50: oklch(0.978 0.035 84);
+  --color-primary-100: oklch(0.954 0.07 84);
+  --color-primary-200: oklch(0.906 0.115 84);
+  --color-primary-300: oklch(0.84 0.15 84);
+  --color-primary-400: oklch(0.77 0.16 82);
+  --color-primary-500: oklch(0.7 0.155 80);
+  --color-primary-600: oklch(0.6 0.13 75);
+  --color-primary-700: oklch(0.5 0.105 70);
+  --color-primary-800: oklch(0.42 0.085 65);
+  --color-primary-900: oklch(0.36 0.07 60);
+  --color-primary-950: oklch(0.25 0.05 55);
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-neutral-950 text-neutral-100 antialiased;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px var(--color-neutral-800) inset !important;
+    -webkit-text-fill-color: var(--color-neutral-100) !important;
+    caret-color: var(--color-neutral-100);
+    transition: background-color 5000s ease-in-out 0s;
+  }
+}

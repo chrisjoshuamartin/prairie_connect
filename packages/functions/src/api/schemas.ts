@@ -74,10 +74,110 @@ export const CorridorSchema = z
     name: z.string(),
     operator: z.string().nullable(),
     description: z.string().nullable(),
+    /** The rail line the corridor is built around (admin endpoints only). */
+    railLineId: z.string().nullable().optional(),
     metrics: z.record(z.string(), z.unknown()),
     createdAt: z.string(),
   })
   .openapi("Corridor");
+
+export const CreateCorridorSchema = z
+  .object({
+    name: z.string().min(2).max(200),
+    slug: z
+      .string()
+      .min(2)
+      .max(100)
+      .regex(/^[a-z0-9-]+$/)
+      .optional()
+      .describe("Derived from the name when omitted"),
+    operator: z.string().max(200).optional(),
+    description: z.string().max(5000).optional(),
+    railLineId: z
+      .string()
+      .uuid()
+      .optional()
+      .describe(
+        "Build the corridor around this rail line: geometry is copied from it and its rail graph is tagged with the corridor",
+      ),
+    metrics: z.record(z.string(), z.unknown()).optional(),
+  })
+  .openapi("CreateCorridor");
+
+export const UpdateCorridorSchema = CreateCorridorSchema.partial()
+  .extend({
+    railLineId: z
+      .string()
+      .uuid()
+      .nullable()
+      .optional()
+      .describe("Set to relink (geometry is re-copied) or null to detach"),
+  })
+  .openapi("UpdateCorridor");
+
+export const RailLineSchema = z
+  .object({
+    id: z.string(),
+    slug: z.string(),
+    name: z.string(),
+    operator: z.string().nullable(),
+    description: z.string().nullable(),
+    sourceName: z.string().nullable(),
+    edgeCount: z.number().describe("Routing graph edges derived from this line"),
+    totalLengthKm: z.number(),
+    createdAt: z.string(),
+  })
+  .openapi("RailLine");
+
+export const RailLineDetailSchema = RailLineSchema.extend({
+  /** GeoJSON MultiLineString of the full line geometry. */
+  geometry: z.record(z.string(), z.unknown()).nullable(),
+}).openapi("RailLineDetail");
+
+export const ImportRailLineSchema = z
+  .object({
+    name: z.string().min(2).max(200),
+    slug: z
+      .string()
+      .min(2)
+      .max(100)
+      .regex(/^[a-z0-9-]+$/)
+      .optional()
+      .describe("Derived from the name when omitted"),
+    operator: z.string().max(200).optional(),
+    description: z.string().max(5000).optional(),
+    geojson: z
+      .union([z.record(z.string(), z.unknown()), z.string()])
+      .describe(
+        "GeoJSON FeatureCollection, Feature, LineString, or MultiLineString (object or JSON string). Non-line features are ignored.",
+      ),
+    sourceName: z.string().max(300).optional().describe("Original filename, for provenance"),
+    buildGraph: z
+      .boolean()
+      .default(true)
+      .describe("Also derive rail_nodes / rail_edges for the routing engine"),
+    snapToleranceM: z
+      .number()
+      .min(0)
+      .max(5000)
+      .default(150)
+      .describe(
+        "Segment endpoints within this distance (metres) of an existing node reuse it — stitches lines into one routable network",
+      ),
+  })
+  .openapi("ImportRailLine");
+
+export const ImportRailLineResultSchema = z
+  .object({
+    railLineId: z.string(),
+    slug: z.string(),
+    segmentCount: z.number().describe("LineStrings found in the source GeoJSON"),
+    nodesCreated: z.number(),
+    nodesReused: z.number().describe("Endpoints snapped onto existing nodes"),
+    edgesCreated: z.number(),
+    totalLengthKm: z.number(),
+  })
+  .openapi("ImportRailLineResult");
 
 export const CorridorDetailSchema = CorridorSchema.extend({
   /** GeoJSON MultiLineString of the corridor geometry (null if not loaded). */

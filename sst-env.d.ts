@@ -6,6 +6,10 @@
 
 declare module "sst" {
   export interface Resource {
+    "Admin": {
+      "type": "sst.aws.Nextjs"
+      "url": string
+    }
     "Ai": {
       "chatModelId": string
       "dataSourceId": string

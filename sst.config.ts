@@ -32,9 +32,11 @@ export default $config({
     const { corpusBucket } = await import("./infra/storage");
     const { ai } = await import("./infra/ai");
     const { api } = await import("./infra/api");
+    const { admin } = await import("./infra/admin");
 
     return {
       apiUrl: api.url,
+      adminUrl: admin.url,
       docsUrl: $interpolate`${api.url}/docs`,
       openapiUrl: $interpolate`${api.url}/openapi.json`,
       region: "ca-central-1",

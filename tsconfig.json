@@ -15,5 +15,5 @@
       "@prairie-connect/functions/*": ["./packages/functions/src/*"]
     }
   },
-  "exclude": ["node_modules", "dist", ".sst"]
+  "exclude": ["node_modules", "dist", ".sst", "packages/admin"]
 }

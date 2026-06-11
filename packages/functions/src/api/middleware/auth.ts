@@ -2,9 +2,8 @@ import { Resource } from "sst";
 import type { Context, MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
-import { eq } from "drizzle-orm";
-import { getDb } from "@prairie-connect/core/db/client";
-import { users, type UserRole } from "@prairie-connect/core/db/schema/index";
+import { type UserRole } from "@prairie-connect/core/db/schema/index";
+import { ensureUser } from "@prairie-connect/core/users/ensure";
 import type { AppEnv, AuthClaims } from "../types";
 
 // Lazy so the module is importable without an SST context (OpenAPI export).
@@ -64,25 +63,11 @@ export function requireAuth(c: Context<AppEnv>): AuthClaims {
  */
 export async function requireDbUser(c: Context<AppEnv>) {
   const auth = requireAuth(c);
-  const db = getDb();
-  const existing = await db
-    .select()
-    .from(users)
-    .where(eq(users.cognitoSub, auth.sub));
-  if (existing[0]) return existing[0];
-
-  await db
-    .insert(users)
-    .values({ cognitoSub: auth.sub, email: auth.email ?? "" })
-    .onConflictDoNothing({ target: users.cognitoSub });
-  const created = await db
-    .select()
-    .from(users)
-    .where(eq(users.cognitoSub, auth.sub));
-  if (!created[0]) {
+  const user = await ensureUser({ cognitoSub: auth.sub, email: auth.email ?? "" });
+  if (!user) {
     throw new HTTPException(500, { message: "Failed to resolve user" });
   }
-  return created[0];
+  return user;
 }
 
 export async function requireRole(c: Context<AppEnv>, roles: UserRole[]) {

@@ -8,6 +8,7 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 import { corridors } from "./corridors";
+import { railLines } from "./rail-lines";
 import { geographyPoint, geographyLineString } from "./types";
 
 export const NODE_KINDS = [
@@ -32,6 +33,8 @@ export const railNodes = pgTable("rail_nodes", {
   name: text("name"),
   kind: text("kind").$type<NodeKind>().notNull().default("station"),
   corridorId: uuid("corridor_id").references(() => corridors.id),
+  /** Set when the node was created by a rail line import. */
+  railLineId: uuid("rail_line_id").references(() => railLines.id),
   location: geographyPoint("location").notNull(),
 });
 
@@ -44,6 +47,8 @@ export const railEdges = pgTable("rail_edges", {
     .notNull()
     .references(() => railNodes.id),
   corridorId: uuid("corridor_id").references(() => corridors.id),
+  /** Set when the edge was created by a rail line import. */
+  railLineId: uuid("rail_line_id").references(() => railLines.id),
   operator: text("operator"),
   mode: text("mode").$type<EdgeMode>().notNull().default("shortline"),
   lengthKm: doublePrecision("length_km"),

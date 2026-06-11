@@ -287,6 +287,12 @@
               "null"
             ]
           },
+          "railLineId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "metrics": {
             "type": "object",
             "additionalProperties": {}
@@ -309,6 +315,250 @@
         "allOf": [
           {
             "$ref": "#/components/schemas/Corridor"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "geometry": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "geometry"
+            ]
+          }
+        ]
+      },
+      "CreateCorridor": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "pattern": "^[a-z0-9-]+$",
+            "description": "Derived from the name when omitted"
+          },
+          "operator": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "railLineId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Build the corridor around this rail line: geometry is copied from it and its rail graph is tagged with the corridor"
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCorridor": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "pattern": "^[a-z0-9-]+$",
+            "description": "Derived from the name when omitted"
+          },
+          "operator": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "railLineId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Set to relink (geometry is re-copied) or null to detach"
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "RailLine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "operator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "edgeCount": {
+            "type": "number",
+            "description": "Routing graph edges derived from this line"
+          },
+          "totalLengthKm": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "operator",
+          "description",
+          "sourceName",
+          "edgeCount",
+          "totalLengthKm",
+          "createdAt"
+        ]
+      },
+      "ImportRailLineResult": {
+        "type": "object",
+        "properties": {
+          "railLineId": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "segmentCount": {
+            "type": "number",
+            "description": "LineStrings found in the source GeoJSON"
+          },
+          "nodesCreated": {
+            "type": "number"
+          },
+          "nodesReused": {
+            "type": "number",
+            "description": "Endpoints snapped onto existing nodes"
+          },
+          "edgesCreated": {
+            "type": "number"
+          },
+          "totalLengthKm": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "railLineId",
+          "slug",
+          "segmentCount",
+          "nodesCreated",
+          "nodesReused",
+          "edgesCreated",
+          "totalLengthKm"
+        ]
+      },
+      "ImportRailLine": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "pattern": "^[a-z0-9-]+$",
+            "description": "Derived from the name when omitted"
+          },
+          "operator": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "geojson": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "GeoJSON FeatureCollection, Feature, LineString, or MultiLineString (object or JSON string). Non-line features are ignored."
+          },
+          "sourceName": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Original filename, for provenance"
+          },
+          "buildGraph": {
+            "type": "boolean",
+            "default": true,
+            "description": "Also derive rail_nodes / rail_edges for the routing engine"
+          },
+          "snapToleranceM": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5000,
+            "default": 150,
+            "description": "Segment endpoints within this distance (metres) of an existing node reuse it — stitches lines into one routable network"
+          }
+        },
+        "required": [
+          "name",
+          "geojson"
+        ]
+      },
+      "RailLineDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RailLine"
           },
           {
             "type": "object",
@@ -2270,6 +2520,497 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CorridorDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/corridors": {
+      "post": {
+        "tags": [
+          "Corridors"
+        ],
+        "summary": "Create a corridor",
+        "description": "Pass `railLineId` to build the corridor around an imported rail line: its geometry is copied onto the corridor and its routing graph is tagged with the corridor. Operator defaults to the rail line's operator.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCorridor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created corridor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Corridor"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not configured / conflicting state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/corridors/{id}": {
+      "patch": {
+        "tags": [
+          "Corridors"
+        ],
+        "summary": "Update a corridor",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCorridor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated corridor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Corridor"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not configured / conflicting state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Corridors"
+        ],
+        "summary": "Delete a corridor",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Corridor is referenced by other records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/raillines": {
+      "get": {
+        "tags": [
+          "Rail lines"
+        ],
+        "summary": "List rail lines (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All imported rail lines with graph stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RailLine"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Rail lines"
+        ],
+        "summary": "Import a rail line from GeoJSON",
+        "description": "Stores the line geometry and (by default) derives the pgRouting graph: one edge per source LineString, endpoints snapped onto existing nodes so separately imported lines stitch into one routable network.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRailLine"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Import summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRailLineResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid GeoJSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not configured / conflicting state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/raillines/{id}": {
+      "get": {
+        "tags": [
+          "Rail lines"
+        ],
+        "summary": "Get a rail line with geometry (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rail line detail incl. GeoJSON geometry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RailLineDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Rail lines"
+        ],
+        "summary": "Delete a rail line and its derived graph",
+        "description": "Removes the line, its edges, and nodes not shared with other lines. Corridors built on it keep their copied geometry but lose the link.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

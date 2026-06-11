@@ -20,10 +20,37 @@ Built with [SST v4](https://sst.dev) on AWS (`ca-central-1`, profile `wcslra`).
 ```
 packages/core        DB schema/client, search, chat, routing, realtime helpers
 packages/functions   Lambda handlers: the Hono API, Cognito trigger, IoT authorizer
+packages/admin       Internal admin tooling (Next.js) — rail line GeoJSON import, corridor adder
 infra/               SST/Pulumi infrastructure modules
 scripts/             export-openapi.ts, smoke.ts
 docs/                Project docs + frontend integration guide
 ```
+
+## Admin tooling
+
+`packages/admin` is an internal Next.js dashboard (deployed via `sst.aws.Nextjs`,
+stack output `adminUrl`). It's a pure client of the REST API — sign-in uses the same
+Cognito User Pool, the resulting JWT is sent as a Bearer token, and every admin
+endpoint enforces `users.role = 'admin'` server-side. Current tools:
+
+- **Rail lines** — import rail route GeoJSON (`/v1/admin/raillines`); stores the
+  geometry and derives the `rail_nodes`/`rail_edges` pgRouting graph, snapping
+  segment endpoints onto existing nodes so separate lines stitch into one network.
+- **Corridors** — create a corridor around an imported rail line
+  (`/v1/admin/corridors`); geometry is copied from the line and its graph is tagged
+  with the corridor.
+
+**Access**: the very first user to sign up is created with the `admin` role (fresh
+deployments are administrable without manual SQL); everyone after that starts as
+`member` and needs `role = 'admin'` set in the `users` table. Under `npm run dev`
+the admin app runs locally with the dev stage's Cognito + API wired in.
+
+**Google login**: enabled automatically when `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
+are set in `.env.<stage>` (see `infra/auth.ts`). The OAuth flow returns to
+`<admin-url>/auth/callback`, so for a deployed stage add the admin URL to
+`AUTH_CALLBACK_URLS` (with the `/auth/callback` path) and `AUTH_LOGOUT_URLS`, then
+redeploy — the localhost defaults already cover `sst dev`. In the Google console,
+the authorized redirect URI is `https://prairie-connect-<stage>.auth.ca-central-1.amazoncognito.com/oauth2/idpresponse`.
 
 ## Stages
 
