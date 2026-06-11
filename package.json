@@ -1,0 +1,27 @@
+{
+  "name": "prairie-connect",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npx sst dev",
+    "deploy": "npx sst deploy && npm run db:migrate",
+    "deploy:production": "npx sst deploy --stage production && npx sst shell --stage production npx tsx packages/core/src/db/migrate.ts",
+    "remove": "npx sst remove",
+    "db:generate": "npm run generate --workspace=packages/core",
+    "db:migrate": "npx sst shell npx tsx packages/core/src/db/migrate.ts",
+    "openapi": "npx tsx scripts/export-openapi.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "dotenv": "^17.0.0",
+    "sst": "latest",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.0"
+  }
+}

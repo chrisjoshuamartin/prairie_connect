@@ -1,0 +1,25 @@
+{
+  "name": "@prairie-connect/core",
+  "type": "module",
+  "version": "0.0.1",
+  "exports": {
+    "./*": "./src/*"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-agent-runtime": "^3.0.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.0.0",
+    "@aws-sdk/client-iot-data-plane": "^3.0.0",
+    "@aws-sdk/client-rds-data": "^3.0.0",
+    "drizzle-orm": "^0.38.0",
+    "sst": "latest",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.30.0",
+    "typescript": "^5.7.0"
+  }
+}

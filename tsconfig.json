@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "paths": {
+      "@prairie-connect/core/*": ["./packages/core/src/*"],
+      "@prairie-connect/functions/*": ["./packages/functions/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".sst"]
+}

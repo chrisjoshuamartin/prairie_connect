@@ -1,0 +1,204 @@
+NOTE
+Rachel just wants a rough estimate idea to have some sort of breakdown for the board and PrairiesCan. Notes are below
+
+The WCSLRA needs to pay at least 10% of this ask.
+The amount PrairiesCan had said we could  use was around 1 million. Where this gets tricky is that the WCSLRA needs to cover 10% of this ask and needs to justify asking the current short line rail members to cover this. 
+
+They will ask Ministries of Highways in Sask for some money as they chipped in before.
+
+WCSLRA also wants to hide some of the stuff for the old upward amendment to Prairiescan and still have us work on the main site, offer tech support and possibly do some marketing stuff.
+So I left room for it too. All just roughing shit in with Chatty G and thoughts from Rachel
+
+I used the rough notes below to break out some costs with ChatGPT
+I have made a rough excel sheet where we can play here link
+
+
+Prairie Connect ($820,200)
+A. Corridor Atlas (18 short lines + CN & CPKC)
+What: Basemap per corridor; 50-km band; major towns; Class I interchanges; development sites; resource overlays; transloads/processors/terminals.
+
+Data aggregation & basemap
+Define corridor boundaries
+Towns and Cities
+Resource & commodity overlay creation
+Development sites
+Interchange & port connectivity layer
+Corridor metrics & summary data JSON outputs
+Design & map style
+QA
+
+
+ Hours: 1,020 Cost: $153,000
+B. Universal Search / AI Guide
+What: “What can I help with?” assistant; intent detection; handoff to Marketplace/Route Finder/Dev Sites; rail-centric prompts.
+
+Schema
+Prompt Library
+LLM/AI Response Design
+Search + Suggest UI
+Autocomplete + Directory Hook
+Search-to-Module Logic (Router)
+Contextual AI Suggestions
+Local Awareness / Geolocation Integration
+Content Fallback Mode (Offline AI)
+Search Analytics & Logs
+Testing & Iteration
+
+
+ Hours: 525 Cost: $78,750
+C. Directories / Marketplace (curated)
+What: Verified, corridor-first listings for buyers, processors, logistics; sector “lenses” (agrivalue, lumber, wind, aggregates, minerals).
+
+Schema
+Data Framework / import tools
+Filters
+Search & Map Integration
+User Roles & Submission Flow
+Update & Alerts System
+Design System Integration
+QA
+
+
+ Hours: 510 Cost: $76,500
+D. Route Finder (Outbound + Reverse)
+What: Outbound (farm/site → SL → Class I → port/processor) and Reverse (site → markets); step list + map
+
+Routing Schema
+Network Graph Build
+Origin/Destination Geocodes
+Routing Algorithms (Outbound & Reverse)
+UI/UX Flow & Step Visuals
+Route Preview
+Directory Hooks & Hand-offs
+Export & Embeds
+QA
+
+
+ Hours: 490 Cost: $73,500
+E. Short Line Growth Tools (Lean) + Econ-Dev Map & Corridor Pages
+What: Reusable corridor page; AI overlays for clusters; exportable Corridor Opportunity Pack; Tenant Attraction Pack generator; quote/onboarding templates; basic CRM-lite.
+
+Corridor Template Design
+AI-Guided Tenant Suggestions
+Economic-Development Map Layer 9zoning etc.)
+Tenant Attraction Pack Generator
+Mini-CRM + Lead Tracking (Lean)
+Corridor Metrics Dashboard
+Map + Directory Integration
+Admin for EDOs and Short Lines
+Public + Private Modes
+Testing - Pilot
+
+
+ Hours: 520 Cost: $78,000
+F. Front-End Design & UX
+What: Visual identity, UI kit, responsive flows (Home/AI Guide, Route Planner, Corridor Pages, Directory); accessibility baseline.
+
+UX Architecture & Flow Mapping
+Wireframes & Interaction Models
+Visual Design System (UI Kit)
+Mood Boards
+Interface Design
+Interactive Map UX Patterns
+AI Guide & Search Interface Design
+Mobile Responsiveness
+Branding Design
+Accessibility
+QA
+
+
+ Hours: 435 Cost: $65,250
+G. Admin CMS / Roles / Analytics
+What: Content CMS, roles/permissions, verification queue, basic analytics dashboards; self-serve updates; audit trail.
+
+
+
+Role Matrix & Permissions Model
+AuthN/AuthZ Setup
+CMS Content Models
+Directory Management Console
+Corridor Editing Tools
+Update & Notices System
+Analytics
+Dashboards
+Data Refresh Workflows
+Security, QA & Admin UX
+
+ Hours: 256 Cost: $38,400
+H. QA & UAT (Cross-module)
+What: Test plans, regression suites, accessibility/performance audits, UAT support; batch with each corridor drop.
+
+Test Strategy & Matrix
+Acceptance Criteria (AC) Authoring
+Test Data & Fixtures
+Manual Test Suites
+Automated Checks
+Accessibility Audit
+Performance & Map Responsiveness
+Security & Privacy
+UAT with Pilot Users
+Release Readiness Performance Optimization
+
+
+ Hours: 320 Cost: $48,000
+I. Support (post-launch)
+What: 3-month bugfix window, small UX tweaks, monitoring, updates.
+
+Bug Fixes: 4 hours a month
+Monitoring
+Content & Data Refreshes
+Analytics Review & Reporting
+Security & Maintenance Updates
+
+
+ Hours: 192 Cost: $28,800
+
+Estimated Hosting & Data Services (Ongoing)
+These are recurring technology costs required to keep Prairie Connect online, fast, and accurate. They scale with traffic and API usage (map views, search queries, and data calls).
+Item
+Description
+Estimated Cost (Monthly)
+Notes
+Web Hosting / Cloud Server
+Primary production server for the web app and API backend (managed VPS or AWS EC2 instance).
+$80–$200
+Includes backups, SSL, and uptime monitoring.
+Map Tile Requests (e.g., Mapbox / ESRI)
+Fees for rendering corridor maps, layers, and zoom levels.
+$0–$100
+Mapbox, pay on demand.
+Geolocation / Reverse Geocoding API
+Converts coordinates to towns, routes, and corridor matchups.
+$20–$300
+E.g. Mapbox Geocoding APIs.
+AI / Search Queries
+Cost of intent detection and guided search (if using OpenAI API or similar).
+$30–$1000
+Scales with search traffic; can be cached or throttled.
+Database & File Storage
+Secure storage for corridor data, listings, images, and generated PDF packs.
+$5–$200
+e.g., AWS RDS + S3, or managed equivalent.
+Analytics & Monitoring
+Tracks system uptime, API performance, and usage patterns.
+$0–$50
+e.g., Google analytics, custom events.
+Email / Notification Services
+Sends service alerts, update notices, and user verifications.
+$50–$100
+e.g., AWS SES.
+
+Estimated Total Monthly: $185 – $1950
+ Estimated Annual: $2,220 – $23,400
+
+Grand Totals
+Total Hours: 5,468
+
+
+Total Cost: $820,000
+
+
+WCSLRA 10% share: $82,000
+PrairiesCan ask (balance): $738,000
+
+
