@@ -46,6 +46,37 @@ await fetch(`${apiUrl}/v1/me`, { headers: { Authorization: `Bearer ${jwt}` } });
 - Tokens last 24h; refresh tokens 30 days (Amplify refreshes automatically).
 - Public endpoints (search, directory browse, corridors, route finding) need no token. Sending an **invalid** token to any endpoint returns `401`.
 
+### Sign in with Google
+
+Google login flows through the Cognito hosted UI OAuth endpoints (authorization code + PKCE) — the stack output `googleLoginEnabled` tells you whether it's switched on for the stage, and `authDomain` is the OAuth host. With Amplify it's one extra config block and one call:
+
+```ts
+Amplify.configure({
+  Auth: {
+    Cognito: {
+      userPoolId,
+      userPoolClientId,
+      loginWith: {
+        oauth: {
+          domain: authDomain,                          // stack output, e.g. prairie-connect-dev.auth.ca-central-1.amazoncognito.com
+          scopes: ["openid", "email", "profile"],
+          redirectSignIn: ["http://localhost:3000/auth/callback"],
+          redirectSignOut: ["http://localhost:3000"],
+          responseType: "code",
+        },
+      },
+    },
+  },
+});
+
+import { signInWithRedirect } from "aws-amplify/auth";
+await signInWithRedirect({ provider: "Google" });
+```
+
+After the redirect back, `fetchAuthSession()` returns a normal Cognito JWT — **everything downstream (Bearer header, realtime auth, roles) is identical to email/password users**. First Google sign-in auto-creates the user record, same as email sign-up.
+
+Your redirect URLs must be registered server-side. Localhost is pre-registered; tell us your deployed frontend origins and we'll add them (`AUTH_CALLBACK_URLS` / `AUTH_LOGOUT_URLS`).
+
 ## 3. Realtime (WebSockets)
 
 Chat replies stream over MQTT-over-WSS (AWS IoT). Get the connection config:

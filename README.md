@@ -114,7 +114,21 @@ Run these per stage (`:dev` shown; use `:production` for prod):
 
    and run `npm run deploy:dev` again. This creates the Knowledge Base, its IAM role, and the S3 data source, and wires `knowledgeBaseId` / `dataSourceId` into the API automatically — no console steps, no ids to copy. Chat works without it (no retrieval grounding); the knowledge `sync` endpoints return `409` until it's enabled.
 
-Environment overrides are read from `.env` and the per-stage `.env.<stage>` (e.g. `.env.dev`, `.env.production`), which SST auto-loads: `ENABLE_KNOWLEDGE_BASE`, `CHAT_MODEL_ID`, `EMBEDDING_MODEL_ID`. These files are gitignored.
+4. **Google sign-in (optional)** — gated on env vars, like the Knowledge Base:
+   1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) create an **OAuth client ID** (type: Web application).
+   2. Add the authorized redirect URI `https://prairie-connect-<stage>.auth.ca-central-1.amazoncognito.com/oauth2/idpresponse` (the Cognito hosted UI domain from the `authDomain` stack output).
+   3. Set in `.env.<stage>`:
+
+      ```
+      GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET=...
+      AUTH_CALLBACK_URLS=http://localhost:3000/auth/callback,https://<frontend-domain>/auth/callback
+      AUTH_LOGOUT_URLS=http://localhost:3000,https://<frontend-domain>
+      ```
+
+   4. Redeploy. The `googleLoginEnabled` stack output flips to `true`, and the frontend signs in via `signInWithRedirect({ provider: "Google" })` (see [docs/frontend-integration.md](docs/frontend-integration.md)). Federated users get normal Cognito JWTs — zero API changes — and the post-confirmation trigger creates their user record on first sign-in.
+
+Environment overrides are read from `.env` and the per-stage `.env.<stage>` (e.g. `.env.dev`, `.env.production`), which SST auto-loads: `ENABLE_KNOWLEDGE_BASE`, `CHAT_MODEL_ID`, `EMBEDDING_MODEL_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_CALLBACK_URLS`, `AUTH_LOGOUT_URLS`. These files are gitignored.
 
 ## Knowledge base content workflow
 
@@ -149,6 +163,8 @@ Endpoints supporting the curated prototype experience (all public unless noted):
 | `GET /v1/admin/leads`, `PATCH /v1/admin/leads/{id}` | (admin) Review captured leads, move them through `new → contacted → qualified → closed`. |
 | `POST /v1/analytics/events` | Batched product analytics (1-50 events/call). Open vocabulary (`intent_selected`, `search_performed`, `ai_prompt_used`, ...) with a free-form `payload` and client `sessionId`. |
 | `GET /v1/map/layers` | Code-defined registry of map layers (short lines, Class I, interchanges, ports, transloads, development sites, ...). Layers report `available` or `planned` so the frontend stays config-driven. |
+
+**Demo placement inventory** — `npm run seed:placements:dev` seeds 5 realistic demo placements (corridor sponsor, featured transload, house ad, ...) so the frontend has data to render. Idempotent: matched by title, so re-runs never duplicate and admin edits survive. Real inventory is managed through the admin endpoints.
 
 ## Seeding the rail network
 

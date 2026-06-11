@@ -26,7 +26,8 @@ export default $config({
   },
   async run() {
     const { database, cluster } = await import("./infra/database");
-    const { userPool, userPoolClient } = await import("./infra/auth");
+    const { userPool, userPoolClient, authDomain, googleLoginEnabled } =
+      await import("./infra/auth");
     const { realtime } = await import("./infra/realtime");
     const { corpusBucket } = await import("./infra/storage");
     const { ai } = await import("./infra/ai");
@@ -39,6 +40,8 @@ export default $config({
       region: "ca-central-1",
       userPoolId: userPool.id,
       userPoolClientId: userPoolClient.id,
+      authDomain,
+      googleLoginEnabled,
       realtimeEndpoint: realtime.endpoint,
       realtimeAuthorizer: realtime.authorizer,
       corpusBucket: corpusBucket.name,

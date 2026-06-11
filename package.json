@@ -13,6 +13,8 @@
     "db:generate": "npm run generate --workspace=packages/core",
     "db:migrate:dev": "npx sst shell --stage dev npx tsx packages/core/src/db/migrate.ts",
     "db:migrate:production": "npx sst shell --stage production npx tsx packages/core/src/db/migrate.ts",
+    "seed:placements:dev": "npx sst shell --stage dev npx tsx scripts/seed-placements.ts",
+    "seed:placements:production": "npx sst shell --stage production npx tsx scripts/seed-placements.ts",
     "openapi": "npx tsx scripts/export-openapi.ts",
     "smoke": "npx tsx scripts/smoke.ts",
     "typecheck": "tsc --noEmit",
@@ -20,6 +22,7 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@aws-sdk/client-bedrock": "^3.1066.0",
     "dotenv": "^17.0.0",
     "sst": "latest",
     "tsx": "^4.0.0",
