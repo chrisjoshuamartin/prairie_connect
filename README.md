@@ -25,23 +25,71 @@ scripts/             export-openapi.ts, smoke.ts
 docs/                Project docs + frontend integration guide
 ```
 
-## Getting started
+## Stages
+
+Two long-lived stages, both in account `730335564302` (profile `wcslra`, `ca-central-1`):
+
+| Stage | Purpose | Notes |
+|---|---|---|
+| `dev` | Shared development + frontend integration | Torn down freely; `sst dev` runs here |
+| `production` | Live | `removal: retain` + `protect` guard against accidental teardown |
+
+All scripts are stage-explicit, so nothing ever deploys to an unexpected personal stage.
+
+## Local development & testing
+
+There are two levels of "local", smallest blast radius first.
+
+### 1. Fully offline — no AWS, no deploy (start here)
+
+The API app, request validation, auth rejection, routing, and the OpenAPI/Swagger
+generation all run on your machine with zero AWS:
 
 ```bash
 npm install
-npx sst dev          # live-dev against AWS (deploys a personal stage)
-npm run deploy       # deploy + run DB migrations
+npm test          # unit tests (UI action protocol, realtime authorizer)
+npm run smoke     # boots the Hono app in-process and hits real routes
+npm run openapi   # regenerate openapi.json
+npm run typecheck
 ```
 
-Useful scripts:
+`npm run smoke` exercises `/health`, `/docs`, `/openapi.json`, and confirms auth +
+validation behavior. Anything that touches the database, Cognito, Bedrock, or IoT
+won't run here (no `Resource` bindings) — that's what stage `dev` is for.
+
+### 2. Live dev against the `dev` stage (Live Lambda)
+
+`sst dev` provisions the `dev` stage's infra on AWS **once**, then runs your handler
+code locally — edit a file and the next request uses it instantly, with breakpoints
+and real logs. This is how you test anything hitting the DB / Cognito / Bedrock.
 
 ```bash
-npm run db:generate  # drizzle-kit: generate migration from schema changes
-npm run db:migrate   # apply migrations (via sst shell)
-npm run openapi      # write openapi.json (checked in; visible in PR diffs)
-npm test             # unit tests
-npm run typecheck
-npx tsx scripts/smoke.ts   # local smoke test of the API app, no AWS needed
+npm run dev              # sst dev --stage dev  (first run provisions infra, ~10 min)
+# ...in another terminal, once it prints the Api URL:
+npm run db:migrate:dev   # apply migrations to the dev database
+```
+
+Hit the printed `Api` URL (e.g. open `<apiUrl>/docs`). The first request after idle
+takes ~15-30s while Aurora resumes from auto-pause; subsequent ones are fast.
+
+> Note: SST v4 has no fully-offline cloud emulator — `sst dev` is the intended local
+> workflow and it needs the `dev` stage's resources to exist in AWS. Use level 1 for
+> anything that doesn't require live AWS services.
+
+## Deploying
+
+```bash
+npm run deploy:dev          # deploy + migrate the dev stage
+npm run deploy:production    # deploy + migrate production (protected stage)
+```
+
+Other scripts:
+
+```bash
+npm run db:generate          # drizzle-kit: generate a migration from schema changes
+npm run db:migrate:dev       # apply migrations to dev
+npm run db:migrate:production # apply migrations to production
+npm run remove:dev           # tear down the dev stage
 ```
 
 ## API docs (Swagger)
@@ -54,15 +102,53 @@ The spec is generated from the same Zod schemas that validate requests at runtim
 
 ## One-time setup after first deploy
 
-1. **Migrations** — `npm run db:migrate` (creates tables, extensions, indexes, and the `bedrock_integration.bedrock_kb` table).
-2. **Bedrock model access** — in the AWS console (Bedrock → Model access, `ca-central-1`), enable Anthropic Claude and Amazon Titan Embeddings v2.
-3. **Knowledge Base (optional, enables RAG)** — Bedrock → Knowledge Bases → create with:
-   - Data source: the `CorpusBucket` S3 bucket (stack output `corpusBucket`)
-   - Embeddings model: Titan Text Embeddings v2 (1024 dims)
-   - Vector store: Amazon Aurora — cluster ARN from stack output, database `prairieconnect`, schema `bedrock_integration`, table `bedrock_kb`, mappings: `id` / `embedding` / `chunks` / `metadata` / `custom_metadata`
-   - Put the resulting KB id in `.env` as `KNOWLEDGE_BASE_ID=...` and redeploy. Chat works without it (no retrieval grounding).
+Run these per stage (`:dev` shown; use `:production` for prod):
 
-Environment overrides (`.env`): `CHAT_MODEL_ID`, `EMBEDDING_MODEL_ID`, `KNOWLEDGE_BASE_ID`.
+1. **Migrations** — `npm run db:migrate:dev` (creates tables, extensions, indexes, and the `bedrock_integration.bedrock_kb` table).
+2. **Bedrock model access** — in the AWS console (Bedrock → Model access, `ca-central-1`), enable Anthropic Claude and Amazon Titan Text Embeddings v2. Account-wide one-time step — the **only** manual Bedrock step.
+3. **Knowledge Base (enables RAG)** — fully IaC'd, but gated behind a flag because Bedrock validates the vector table at creation time (so it can't exist before migrations have run). After step 1, set in `.env.dev`:
+
+   ```
+   ENABLE_KNOWLEDGE_BASE=true
+   ```
+
+   and run `npm run deploy:dev` again. This creates the Knowledge Base, its IAM role, and the S3 data source, and wires `knowledgeBaseId` / `dataSourceId` into the API automatically — no console steps, no ids to copy. Chat works without it (no retrieval grounding); the knowledge `sync` endpoints return `409` until it's enabled.
+
+Environment overrides are read from `.env` and the per-stage `.env.<stage>` (e.g. `.env.dev`, `.env.production`), which SST auto-loads: `ENABLE_KNOWLEDGE_BASE`, `CHAT_MODEL_ID`, `EMBEDDING_MODEL_ID`. These files are gitignored.
+
+## Knowledge base content workflow
+
+The chatbot answers are grounded in documents stored in the S3 corpus bucket and ingested into the Aurora pgvector store by Bedrock. Admin-only endpoints (`role = admin`) manage this:
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /v1/admin/knowledge/text` | Add an authored text snippet (stored as markdown) |
+| `POST /v1/admin/knowledge/uploads` | Get a presigned URL to upload a file (PDF, docx, txt, md) |
+| `GET /v1/admin/knowledge/documents` | List corpus documents (optional `prefix`) |
+| `DELETE /v1/admin/knowledge/documents?key=...` | Remove a document |
+| `POST /v1/admin/knowledge/sync` | Start a Bedrock ingestion job (chunk + embed into the vector store) |
+| `GET /v1/admin/knowledge/sync/{jobId}` | Poll ingestion status |
+| `POST /v1/admin/knowledge/sync-platform` | Export live platform data (corridors + published listings) into the corpus, then ingest (`?ingest=false` to export only) |
+
+Typical flow: add/upload one or more documents → call `sync` once → poll the job until `COMPLETE`. New/changed/removed documents are only reflected in chat answers after a successful sync. The ingestion endpoints return `409` until `ENABLE_KNOWLEDGE_BASE` is on; document upload/list/delete work immediately (they're just S3).
+
+`sync-platform` keeps the chatbot current on the platform's own data: it mirrors every corridor and published directory listing into `platform/` as markdown (with metadata sidecars for filtering), removes docs for unpublished/deleted entities, and kicks off ingestion. Re-run it after meaningful content changes — e.g. weekly, or after a batch of listings is verified.
+
+## Guided pathways, placements, leads, analytics, map layers
+
+Endpoints supporting the curated prototype experience (all public unless noted):
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /v1/intents` | The "I want to..." guided pathways (move goods by rail, find a transload site, ...). Each carries default filters, suggested search terms, a destination page, CTAs, and AI starter prompts — basic navigation never burns AI tokens. |
+| `GET /v1/intents/{slug}` | One pathway page with resolved content: copy, guided questions, related corridors, related listings, curated routes, and featured placements targeted at the intent. |
+| `PUT/DELETE /v1/admin/intents/{slug}` | (admin) Curate pathways without a deploy. The 7 launch pathways are seeded by migration; seeds never overwrite admin edits. |
+| `GET /v1/featured-placements` | Premium listings / corridor sponsors / featured partners for a surface. Filter with `?page=&sector=&region=&corridor=&intent=&listingType=`; placements that don't target a dimension match anything for it. Ordered by `weight`. |
+| `GET/POST/PATCH/DELETE /v1/admin/placements` | (admin) Manage placement inventory, including targeting, scheduling (`startsAt`/`endsAt`), and weight. |
+| `POST /v1/leads` | Inquiry capture for every contact CTA. Anonymous-friendly; attributed to the user when a Bearer token is present. |
+| `GET /v1/admin/leads`, `PATCH /v1/admin/leads/{id}` | (admin) Review captured leads, move them through `new → contacted → qualified → closed`. |
+| `POST /v1/analytics/events` | Batched product analytics (1-50 events/call). Open vocabulary (`intent_selected`, `search_performed`, `ai_prompt_used`, ...) with a free-form `payload` and client `sessionId`. |
+| `GET /v1/map/layers` | Code-defined registry of map layers (short lines, Class I, interchanges, ports, transloads, development sites, ...). Layers report `available` or `planned` so the frontend stays config-driven. |
 
 ## Seeding the rail network
 

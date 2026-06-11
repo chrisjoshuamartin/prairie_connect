@@ -10,6 +10,12 @@ import { corridorRoutes } from "./routes/corridors";
 import { routeRoutes } from "./routes/routes";
 import { chatRoutes } from "./routes/chat";
 import { realtimeRoutes } from "./routes/realtime";
+import { knowledgeRoutes } from "./routes/knowledge";
+import { intentRoutes } from "./routes/intents";
+import { placementRoutes } from "./routes/placements";
+import { leadRoutes } from "./routes/leads";
+import { analyticsRoutes } from "./routes/analytics";
+import { mapRoutes } from "./routes/map";
 import type { AppEnv } from "./types";
 
 export const app = new OpenAPIHono<AppEnv>({
@@ -68,6 +74,12 @@ app.route("/", corridorRoutes);
 app.route("/", routeRoutes);
 app.route("/", chatRoutes);
 app.route("/", realtimeRoutes);
+app.route("/", knowledgeRoutes);
+app.route("/", intentRoutes);
+app.route("/", placementRoutes);
+app.route("/", leadRoutes);
+app.route("/", analyticsRoutes);
+app.route("/", mapRoutes);
 
 // --- OpenAPI / Swagger -------------------------------------------------
 

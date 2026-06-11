@@ -8,6 +8,13 @@
       "when": 1781145809977,
       "tag": "0000_silly_iceman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781150796285,
+      "tag": "0002_pathways_leads_analytics",
+      "breakpoints": true
     }
   ]
 }

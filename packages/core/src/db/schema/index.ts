@@ -5,3 +5,7 @@ export * from "./corridors";
 export * from "./rail";
 export * from "./routes";
 export * from "./chat";
+export * from "./intents";
+export * from "./placements";
+export * from "./leads";
+export * from "./analytics";

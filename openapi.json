@@ -929,6 +929,773 @@
           "topicPrefix",
           "topics"
         ]
+      },
+      "AddKnowledgeText": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100000
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "title",
+          "content"
+        ]
+      },
+      "UploadUrlResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "S3 key the file will live at"
+          },
+          "url": {
+            "type": "string",
+            "description": "Presigned PUT URL — upload the file body here"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "URL validity in seconds"
+          }
+        },
+        "required": [
+          "key",
+          "url",
+          "expiresIn"
+        ]
+      },
+      "UploadUrlRequest": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "contentType": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "filename",
+          "contentType"
+        ]
+      },
+      "KnowledgeDocument": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "size": {
+            "type": "number"
+          },
+          "lastModified": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "size",
+          "lastModified"
+        ]
+      },
+      "IngestionJob": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "STARTING | IN_PROGRESS | COMPLETE | FAILED | ..."
+          },
+          "statistics": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "jobId",
+          "status"
+        ]
+      },
+      "PlatformSyncResult": {
+        "type": "object",
+        "properties": {
+          "written": {
+            "type": "number",
+            "description": "Documents exported to the corpus"
+          },
+          "deleted": {
+            "type": "number",
+            "description": "Stale documents removed"
+          },
+          "ingestion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IngestionJob"
+              },
+              {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "The ingestion job if one was started (null when ingest=false)"
+              }
+            ]
+          }
+        },
+        "required": [
+          "written",
+          "deleted",
+          "ingestion"
+        ]
+      },
+      "Intent": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "intro": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "icon": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "config": {
+            "$ref": "#/components/schemas/IntentConfig"
+          }
+        },
+        "required": [
+          "slug",
+          "title",
+          "intro",
+          "icon",
+          "sortOrder",
+          "config"
+        ]
+      },
+      "IntentConfig": {
+        "type": "object",
+        "properties": {
+          "searchTerms": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "maxItems": 20,
+            "default": []
+          },
+          "defaultFilters": {
+            "type": "object",
+            "properties": {
+              "sector": {
+                "type": "string",
+                "enum": [
+                  "agrivalue",
+                  "lumber",
+                  "wind",
+                  "aggregates",
+                  "minerals",
+                  "logistics",
+                  "other"
+                ]
+              },
+              "q": {
+                "type": "string",
+                "maxLength": 200
+              }
+            }
+          },
+          "destinationPath": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "ctas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "maxLength": 80
+                },
+                "path": {
+                  "type": "string",
+                  "maxLength": 300
+                }
+              },
+              "required": [
+                "label",
+                "path"
+              ]
+            },
+            "maxItems": 10,
+            "default": []
+          },
+          "guidedQuestions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "maxItems": 20,
+            "default": []
+          },
+          "aiPrompts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "maxItems": 10,
+            "default": []
+          },
+          "relatedCorridorSlugs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "maxItems": 30,
+            "default": []
+          }
+        }
+      },
+      "IntentDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Intent"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "relatedCorridors": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Corridor"
+                }
+              },
+              "relatedListings": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/DirectoryListing"
+                }
+              },
+              "suggestedRoutes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SavedRoute"
+                },
+                "description": "Curated routes"
+              },
+              "featuredPlacements": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/FeaturedPlacement"
+                }
+              }
+            },
+            "required": [
+              "relatedCorridors",
+              "relatedListings",
+              "suggestedRoutes",
+              "featuredPlacements"
+            ]
+          }
+        ]
+      },
+      "FeaturedPlacement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "imageUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "linkUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "listingId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "corridorId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "weight": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "imageUrl",
+          "linkUrl",
+          "listingId",
+          "corridorId",
+          "weight"
+        ]
+      },
+      "UpsertIntent": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "intro": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "sortOrder": {
+            "type": "integer",
+            "default": 0
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          },
+          "config": {
+            "$ref": "#/components/schemas/IntentConfig"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "AdminFeaturedPlacement": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FeaturedPlacement"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "targeting": {
+                "$ref": "#/components/schemas/PlacementTargeting"
+              },
+              "active": {
+                "type": "boolean"
+              },
+              "startsAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "endsAt": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "targeting",
+              "active",
+              "startsAt",
+              "endsAt",
+              "createdAt"
+            ]
+          }
+        ]
+      },
+      "PlacementTargeting": {
+        "type": "object",
+        "properties": {
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "maxItems": 10,
+            "default": []
+          },
+          "sectors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "agrivalue",
+                "lumber",
+                "wind",
+                "aggregates",
+                "minerals",
+                "logistics",
+                "other"
+              ]
+            },
+            "maxItems": 10,
+            "default": []
+          },
+          "regions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 10
+            },
+            "maxItems": 10,
+            "default": []
+          },
+          "corridors": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "maxItems": 30,
+            "default": []
+          },
+          "intents": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "maxItems": 30,
+            "default": []
+          },
+          "listingTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "maxItems": 10,
+            "default": []
+          }
+        }
+      },
+      "CreateFeaturedPlacement": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "linkUrl": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "listingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "corridorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "targeting": {
+            "$ref": "#/components/schemas/PlacementTargeting"
+          },
+          "weight": {
+            "type": "integer",
+            "default": 0
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "CreateLead": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 320,
+            "format": "email"
+          },
+          "organization": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "intent": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "relatedListingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "relatedCorridorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "relatedRouteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourcePage": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "name",
+          "email"
+        ]
+      },
+      "Lead": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateLead"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "new",
+                  "contacted",
+                  "qualified",
+                  "closed"
+                ]
+              },
+              "userId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "createdAt": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "userId",
+              "createdAt"
+            ]
+          }
+        ]
+      },
+      "UpdateLeadStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "contacted",
+              "qualified",
+              "closed"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "AnalyticsBatch": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsEvent"
+            },
+            "minItems": 1,
+            "maxItems": 50
+          }
+        },
+        "required": [
+          "events"
+        ]
+      },
+      "AnalyticsEvent": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "e.g. intent_selected, search_performed, listing_viewed, corridor_viewed, route_generated, partner_card_clicked, contact_button_clicked, ai_prompt_used, document_downloaded"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": {},
+            "default": {}
+          },
+          "sessionId": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "page": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "MapLayer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "line",
+              "point",
+              "polygon"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "planned"
+            ]
+          },
+          "defaultVisible": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "geojson-api",
+                  "none"
+                ]
+              },
+              "hint": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "kind",
+          "status",
+          "defaultVisible",
+          "source"
+        ]
       }
     },
     "parameters": {}
@@ -1973,6 +2740,1262 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/knowledge/text": {
+      "post": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Add a text knowledge snippet",
+        "description": "Stores authored text as a markdown document in the corpus. Call the sync endpoint afterward (or batch several adds, then sync once) to ingest it into the vector store.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddKnowledgeText"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stored; key in the corpus bucket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/knowledge/uploads": {
+      "post": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Get a presigned upload URL for a file",
+        "description": "Returns a presigned PUT URL. Upload the file bytes directly to it (PDF, docx, txt, md). Then call the sync endpoint to ingest. The same Content-Type must be sent on the PUT.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presigned upload URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadUrlResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/knowledge/documents": {
+      "get": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "List corpus documents",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by key prefix, e.g. 'knowledge/' or 'uploads/'"
+            },
+            "required": false,
+            "description": "Filter by key prefix, e.g. 'knowledge/' or 'uploads/'",
+            "name": "prefix",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Documents in the corpus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KnowledgeDocument"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Delete a corpus document",
+        "description": "Removes the object (and its metadata sidecar). Run a sync afterward so the vector store drops the chunks.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "key",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/knowledge/sync": {
+      "post": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Start an ingestion job",
+        "description": "Triggers a Bedrock ingestion job that (re)chunks and embeds the corpus into the Aurora vector store. Returns the job id to poll. Returns 409 if the Knowledge Base isn't configured yet.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Ingestion job started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestionJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not configured / conflicting state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/knowledge/sync-platform": {
+      "post": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Export platform data into the knowledge corpus",
+        "description": "Mirrors live platform content — all corridors and published directory listings — into the corpus as markdown documents (under `platform/`), removing docs for entities that no longer qualify. By default also starts an ingestion job so the chatbot picks up the changes; pass `?ingest=false` to export only.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ],
+              "default": "true",
+              "description": "Start a Bedrock ingestion job after exporting"
+            },
+            "required": false,
+            "description": "Start a Bedrock ingestion job after exporting",
+            "name": "ingest",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Export counts + ingestion job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformSyncResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not configured / conflicting state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/knowledge/sync/{jobId}": {
+      "get": {
+        "tags": [
+          "Knowledge Base"
+        ],
+        "summary": "Get ingestion job status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "jobId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingestion job status + statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestionJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not configured / conflicting state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/intents": {
+      "get": {
+        "tags": [
+          "Intents"
+        ],
+        "summary": "List guided pathways",
+        "description": "The curated \"I want to...\" pathways for the home screen. Each carries default filters, suggested search terms, a destination page, CTA buttons, and AI starter prompts — so basic navigation never needs an AI call.",
+        "responses": {
+          "200": {
+            "description": "Active pathways, in display order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Intent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/intents/{slug}": {
+      "get": {
+        "tags": [
+          "Intents"
+        ],
+        "summary": "Get a pathway with resolved content",
+        "description": "Everything needed to render a pathway page: copy, guided questions, CTAs, AI starter prompts, plus resolved related corridors, related listings, curated routes, and featured placements targeted at this intent.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The pathway with resolved relations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/intents/{slug}": {
+      "put": {
+        "tags": [
+          "Intents"
+        ],
+        "summary": "Create or update a pathway",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertIntent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved pathway",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Intent"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Intents"
+        ],
+        "summary": "Delete a pathway",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/featured-placements": {
+      "get": {
+        "tags": [
+          "Featured placements"
+        ],
+        "summary": "Get placements for a surface",
+        "description": "Premium listings, corridor sponsors, and featured partners targeted at the current context. All filters are optional; placements that don't target a dimension match any value for it. Results are ordered by weight.\n\nExamples: `?page=search&sector=agrivalue&region=sk`, `?corridor=gwr`, `?intent=move-goods-by-rail`, `?listingType=transload`.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 50,
+              "description": "UI surface: home | search | directory | corridor | intent | listing | route-finder | map"
+            },
+            "required": false,
+            "description": "UI surface: home | search | directory | corridor | intent | listing | route-finder | map",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "required": false,
+            "name": "sector",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 10,
+              "description": "Province code: bc | ab | sk | mb"
+            },
+            "required": false,
+            "description": "Province code: bc | ab | sk | mb",
+            "name": "region",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Corridor slug"
+            },
+            "required": false,
+            "description": "Corridor slug",
+            "name": "corridor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Intent slug"
+            },
+            "required": false,
+            "description": "Intent slug",
+            "name": "intent",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "required": false,
+            "name": "listingType",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching placements, heaviest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeaturedPlacement"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/placements": {
+      "get": {
+        "tags": [
+          "Featured placements"
+        ],
+        "summary": "List all placements (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All placements, including inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminFeaturedPlacement"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Featured placements"
+        ],
+        "summary": "Create a placement",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFeaturedPlacement"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created placement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFeaturedPlacement"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/placements/{id}": {
+      "patch": {
+        "tags": [
+          "Featured placements"
+        ],
+        "summary": "Update a placement",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 2000
+                  },
+                  "imageUrl": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "linkUrl": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "listingId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "corridorId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "targeting": {
+                    "$ref": "#/components/schemas/PlacementTargeting"
+                  },
+                  "weight": {
+                    "type": "integer",
+                    "default": 0
+                  },
+                  "active": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "startsAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "endsAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated placement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFeaturedPlacement"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Featured placements"
+        ],
+        "summary": "Delete a placement",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/leads": {
+      "post": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Capture a lead",
+        "description": "Inquiry capture for every \"contact this railway / transload / ask about this route / request an opportunity pack\" action. No auth required — anonymous visitors can submit; if a Bearer token is present the lead is attributed to that user.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLead"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lead captured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/leads": {
+      "get": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "List captured leads (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "new",
+                "contacted",
+                "qualified",
+                "closed"
+              ]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "default": 0
+            },
+            "required": false,
+            "name": "offset",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Leads, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Lead"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/leads/{id}": {
+      "patch": {
+        "tags": [
+          "Leads"
+        ],
+        "summary": "Update lead status (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLeadStatus"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated lead",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lead not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analytics/events": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Record product analytics events",
+        "description": "Lightweight, batched event ingest (1-50 events per call). The event vocabulary is open — suggested types: intent_selected, search_performed, listing_viewed, corridor_viewed, route_generated, partner_card_clicked, contact_button_clicked, ai_prompt_used, document_downloaded. Send a client-generated sessionId to stitch funnels. No auth required; signed-in users are attributed automatically.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsBatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Events accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "accepted"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/map/layers": {
+      "get": {
+        "tags": [
+          "Map"
+        ],
+        "summary": "List available map layers",
+        "description": "The registry of map layers the UI can render — short lines, Class I connections, interchanges, ports, transloads, communities, development sites, resource clusters, route segments, featured partners. Layers report \"available\" or \"planned\" so the frontend stays config-driven and picks up new layers without code changes. `source.hint` says where to fetch the data today.",
+        "responses": {
+          "200": {
+            "description": "All registered layers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MapLayer"
+                  }
                 }
               }
             }

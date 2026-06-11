@@ -7,9 +7,14 @@
 
 export default $config({
   app(input) {
+    const isProduction = input?.stage === "production";
     return {
       name: "prairie-connect",
-      removal: input?.stage === "production" ? "retain" : "remove",
+      // Keep data (Aurora, buckets) on `sst remove` in production; tear it
+      // all down in dev.
+      removal: isProduction ? "retain" : "remove",
+      // Block accidental `sst remove` against production.
+      protect: isProduction,
       home: "aws",
       providers: {
         aws: {
@@ -24,6 +29,7 @@ export default $config({
     const { userPool, userPoolClient } = await import("./infra/auth");
     const { realtime } = await import("./infra/realtime");
     const { corpusBucket } = await import("./infra/storage");
+    const { ai } = await import("./infra/ai");
     const { api } = await import("./infra/api");
 
     return {
@@ -36,6 +42,7 @@ export default $config({
       realtimeEndpoint: realtime.endpoint,
       realtimeAuthorizer: realtime.authorizer,
       corpusBucket: corpusBucket.name,
+      knowledgeBaseId: ai.properties.knowledgeBaseId,
       databaseHost: cluster.endpoint,
     };
   },

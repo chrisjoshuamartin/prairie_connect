@@ -43,4 +43,8 @@ export const notFound = {
   404: jsonOf(ErrorSchema, "Not found"),
 };
 
+export const conflict = {
+  409: jsonOf(ErrorSchema, "Not configured / conflicting state"),
+};
+
 export const bearerSecurity = [{ bearerAuth: [] as string[] }];

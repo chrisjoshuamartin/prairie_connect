@@ -68,7 +68,7 @@ const dbInstance = new aws.rds.ClusterInstance(
   },
 );
 
-const secretArn = cluster.masterUserSecrets.apply(
+export const secretArn = cluster.masterUserSecrets.apply(
   (secrets) => secrets![0].secretArn!,
 );
 
