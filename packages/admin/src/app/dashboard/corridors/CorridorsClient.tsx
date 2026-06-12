@@ -9,6 +9,7 @@ import {
   deleteCorridorAction,
 } from "@/lib/actions/corridors";
 import { getRailLineDetailAction } from "@/lib/actions/raillines";
+import { CorridorEditor } from "./CorridorEditor";
 import { MapPreview } from "@/components/MapPreview";
 import { slugify, formatDate } from "@/lib/utils";
 
@@ -40,6 +41,7 @@ export function CorridorsClient({
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<Corridor | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingCorridor, setEditingCorridor] = useState<Corridor | null>(null);
 
   const railLineById = new Map(raillines.map((l) => [l.id, l]));
 
@@ -55,7 +57,12 @@ export function CorridorsClient({
 
     const line = railLineById.get(id);
     if (line) {
-      if (!name) handleNameChange(line.name);
+      if (!slugEdited) {
+        setName(line.name);
+        setSlug(`${line.slug}-corridor`);
+      } else if (!name) {
+        setName(line.name);
+      }
       if (!operator && line.operator) setOperator(line.operator);
     }
     setPreviewLoading(true);
@@ -291,8 +298,16 @@ export function CorridorsClient({
                   <td className="px-4 py-3 text-neutral-400">
                     {formatDate(corridor.createdAt)}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right space-x-3">
                     <button
+                      type="button"
+                      onClick={() => setEditingCorridor(corridor)}
+                      className="text-xs font-medium text-primary-400 hover:text-primary-300 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleDelete(corridor)}
                       disabled={pending && deletingId === corridor.id}
                       className="text-xs font-medium text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
@@ -306,6 +321,14 @@ export function CorridorsClient({
           </tbody>
         </table>
       </div>
+
+      {editingCorridor && (
+        <CorridorEditor
+          corridor={editingCorridor}
+          raillines={raillines}
+          onClose={() => setEditingCorridor(null)}
+        />
+      )}
     </div>
   );
 }

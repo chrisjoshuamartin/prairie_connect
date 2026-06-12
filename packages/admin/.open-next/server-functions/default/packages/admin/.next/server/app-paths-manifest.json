@@ -1,0 +1,11 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/auth/callback/page": "app/auth/callback/page.js",
+  "/denied/page": "app/denied/page.js",
+  "/page": "app/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/raillines/page": "app/dashboard/raillines/page.js",
+  "/dashboard/corridors/page": "app/dashboard/corridors/page.js",
+  "/dashboard/users/page": "app/dashboard/users/page.js"
+}

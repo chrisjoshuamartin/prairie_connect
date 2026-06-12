@@ -1,7 +1,7 @@
 import { database } from "./database";
 import { userPool, userPoolClient } from "./auth";
 import { realtimePublish } from "./realtime";
-import { corpusBucket } from "./storage";
+import { corpusBucket, assetsBucket } from "./storage";
 import { ai } from "./ai";
 
 /**
@@ -21,7 +21,7 @@ export const api = new sst.aws.ApiGatewayV2("Api", {
 
 api.route("$default", {
   handler: "packages/functions/src/api/index.handler",
-  link: [database, userPool, userPoolClient, realtimePublish, corpusBucket, ai],
+  link: [database, userPool, userPoolClient, realtimePublish, corpusBucket, assetsBucket, ai],
   timeout: "30 seconds",
   memory: "1024 MB",
 });

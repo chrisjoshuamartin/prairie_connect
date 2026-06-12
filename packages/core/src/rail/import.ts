@@ -2,6 +2,8 @@ import { sql } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
 import { railLines, railNodes, railEdges, corridors } from "../db/schema/index";
+import { geographyFromEwkt } from "../db/schema/types";
+import { deleteLogoObject } from "./logos";
 
 type Position = [number, number];
 
@@ -131,7 +133,7 @@ function ewktLineString(coords: Position[]): string {
   return `SRID=4326;LINESTRING(${coords.map(([lng, lat]) => `${lng} ${lat}`).join(",")})`;
 }
 
-function ewktMultiLineString(lines: NormalizedLine[]): string {
+export function ewktMultiLineString(lines: NormalizedLine[]): string {
   const parts = lines
     .map((l) => `(${l.coordinates.map(([lng, lat]) => `${lng} ${lat}`).join(",")})`)
     .join(",");
@@ -205,12 +207,133 @@ async function resolveNode(
     .values({
       kind: "junction",
       railLineId,
-      location: `SRID=4326;POINT(${lng} ${lat})`,
+      location: geographyFromEwkt(`SRID=4326;POINT(${lng} ${lat})`),
     })
     .returning({ id: railNodes.id });
   counters.created++;
   cache.set(key, inserted[0].id);
   return inserted[0].id;
+}
+
+/** Remove edges and non-shared nodes derived from a rail line import. */
+export async function clearDerivedGraph(railLineId: string): Promise<void> {
+  const db = getDb();
+  await db.delete(railEdges).where(eq(railEdges.railLineId, railLineId));
+  await db.execute(sql`
+    DELETE FROM rail_nodes n
+    WHERE n.rail_line_id = ${railLineId}::uuid
+      AND NOT EXISTS (
+        SELECT 1 FROM rail_edges e
+        WHERE e.source_id = n.id OR e.target_id = n.id
+      )
+  `);
+  await db
+    .update(railNodes)
+    .set({ railLineId: null })
+    .where(eq(railNodes.railLineId, railLineId));
+}
+
+export interface DeriveGraphResult {
+  nodesCreated: number;
+  nodesReused: number;
+  edgesCreated: number;
+}
+
+/** Build routing edges/nodes for an existing rail line from normalized segments. */
+export async function deriveRailLineGraph(
+  railLineId: string,
+  lines: NormalizedLine[],
+  operator: string | undefined,
+  snapToleranceM = 150,
+): Promise<DeriveGraphResult> {
+  const db = getDb();
+  const counters = { created: 0, reused: 0 };
+  const cache = new Map<string, number>();
+  type EdgeInsert = typeof railEdges.$inferInsert;
+  const edgeValues: EdgeInsert[] = [];
+
+  for (const seg of lines) {
+    const [startLng, startLat] = seg.coordinates[0];
+    const [endLng, endLat] = seg.coordinates[seg.coordinates.length - 1];
+    const sourceId = await resolveNode(
+      startLng,
+      startLat,
+      railLineId,
+      snapToleranceM,
+      cache,
+      counters,
+    );
+    const targetId = await resolveNode(
+      endLng,
+      endLat,
+      railLineId,
+      snapToleranceM,
+      cache,
+      counters,
+    );
+    if (sourceId === targetId && seg.coordinates.length <= 2) continue;
+    edgeValues.push({
+      sourceId,
+      targetId,
+      railLineId,
+      operator,
+      mode: "shortline",
+      geometry: geographyFromEwkt(
+        ewktLineString(seg.coordinates),
+      ) as unknown as EdgeInsert["geometry"],
+      attributes: seg.properties,
+    });
+  }
+
+  const CHUNK = 25;
+  for (let i = 0; i < edgeValues.length; i += CHUNK) {
+    await db.insert(railEdges).values(edgeValues.slice(i, i + CHUNK));
+  }
+
+  await db.execute(sql`
+    UPDATE rail_edges SET length_km = ST_Length(geometry) / 1000.0
+    WHERE rail_line_id = ${railLineId}::uuid AND length_km IS NULL
+  `);
+
+  return {
+    nodesCreated: counters.created,
+    nodesReused: counters.reused,
+    edgesCreated: edgeValues.length,
+  };
+}
+
+export async function totalLengthKmForRailLine(railLineId: string): Promise<number> {
+  const lengthRes = await getDb().execute(sql`
+    SELECT COALESCE(SUM(length_km), ST_Length((SELECT geometry FROM rail_lines WHERE id = ${railLineId}::uuid)) / 1000.0) AS total
+    FROM rail_edges WHERE rail_line_id = ${railLineId}::uuid
+  `);
+  const total = rows<{ total: number | string | null }>(lengthRes)[0]?.total;
+  return total != null ? Number(total) : 0;
+}
+
+/** Copy updated geometry onto linked corridors and re-tag their graph rows. */
+export async function syncLinkedCorridors(railLineId: string): Promise<void> {
+  const db = getDb();
+  const linked = await db
+    .select({ id: corridors.id })
+    .from(corridors)
+    .where(eq(corridors.railLineId, railLineId));
+
+  for (const corridor of linked) {
+    await db.execute(sql`
+      UPDATE corridors
+      SET geometry = (SELECT geometry FROM rail_lines WHERE id = ${railLineId}::uuid)
+      WHERE id = ${corridor.id}::uuid
+    `);
+    await db
+      .update(railEdges)
+      .set({ corridorId: corridor.id })
+      .where(eq(railEdges.railLineId, railLineId));
+    await db
+      .update(railNodes)
+      .set({ corridorId: corridor.id })
+      .where(eq(railNodes.railLineId, railLineId));
+  }
 }
 
 /**
@@ -235,65 +358,30 @@ export async function importRailLine(
       name: input.name,
       operator: input.operator,
       description: input.description,
-      geometry: ewktMultiLineString(lines),
+      geometry: geographyFromEwkt(ewktMultiLineString(lines)),
       properties: { featureCount: lines.length },
       sourceName: input.sourceName,
     })
     .returning({ id: railLines.id, slug: railLines.slug });
 
-  const counters = { created: 0, reused: 0 };
-  let edgesCreated = 0;
-
+  let graph: DeriveGraphResult | null = null;
   if (input.buildGraph !== false) {
-    const toleranceM = input.snapToleranceM ?? 150;
-    const cache = new Map<string, number>();
-    const edgeValues: (typeof railEdges.$inferInsert)[] = [];
-
-    for (const seg of lines) {
-      const [startLng, startLat] = seg.coordinates[0];
-      const [endLng, endLat] = seg.coordinates[seg.coordinates.length - 1];
-      const sourceId = await resolveNode(startLng, startLat, line.id, toleranceM, cache, counters);
-      const targetId = await resolveNode(endLng, endLat, line.id, toleranceM, cache, counters);
-      // Zero-length segments (looped or degenerate) can't carry routing cost.
-      if (sourceId === targetId && seg.coordinates.length <= 2) continue;
-      edgeValues.push({
-        sourceId,
-        targetId,
-        railLineId: line.id,
-        operator: input.operator,
-        mode: "shortline",
-        geometry: ewktLineString(seg.coordinates),
-        attributes: seg.properties,
-      });
-    }
-
-    // Chunked so a long line stays inside RDS Data API request limits.
-    const CHUNK = 25;
-    for (let i = 0; i < edgeValues.length; i += CHUNK) {
-      await db.insert(railEdges).values(edgeValues.slice(i, i + CHUNK));
-    }
-    edgesCreated = edgeValues.length;
-
-    await db.execute(sql`
-      UPDATE rail_edges SET length_km = ST_Length(geometry) / 1000.0
-      WHERE rail_line_id = ${line.id}::uuid AND length_km IS NULL
-    `);
+    graph = await deriveRailLineGraph(
+      line.id,
+      lines,
+      input.operator,
+      input.snapToleranceM ?? 150,
+    );
   }
-
-  const lengthRes = await db.execute(sql`
-    SELECT COALESCE(SUM(length_km), ST_Length((SELECT geometry FROM rail_lines WHERE id = ${line.id}::uuid)) / 1000.0) AS total
-    FROM rail_edges WHERE rail_line_id = ${line.id}::uuid
-  `);
-  const total = rows<{ total: number | string | null }>(lengthRes)[0]?.total;
 
   return {
     railLineId: line.id,
     slug: line.slug,
     segmentCount: lines.length,
-    nodesCreated: counters.created,
-    nodesReused: counters.reused,
-    edgesCreated,
-    totalLengthKm: total != null ? Number(total) : 0,
+    nodesCreated: graph?.nodesCreated ?? 0,
+    nodesReused: graph?.nodesReused ?? 0,
+    edgesCreated: graph?.edgesCreated ?? 0,
+    totalLengthKm: await totalLengthKmForRailLine(line.id),
   };
 }
 
@@ -305,7 +393,7 @@ export async function importRailLine(
 export async function deleteRailLine(id: string): Promise<boolean> {
   const db = getDb();
   const existing = await db
-    .select({ id: railLines.id })
+    .select({ id: railLines.id, logoKey: railLines.logoKey })
     .from(railLines)
     .where(eq(railLines.id, id));
   if (!existing[0]) return false;
@@ -315,21 +403,9 @@ export async function deleteRailLine(id: string): Promise<boolean> {
     .set({ railLineId: null })
     .where(eq(corridors.railLineId, id));
 
-  await db.delete(railEdges).where(eq(railEdges.railLineId, id));
-
-  await db.execute(sql`
-    DELETE FROM rail_nodes n
-    WHERE n.rail_line_id = ${id}::uuid
-      AND NOT EXISTS (
-        SELECT 1 FROM rail_edges e
-        WHERE e.source_id = n.id OR e.target_id = n.id
-      )
-  `);
-  await db
-    .update(railNodes)
-    .set({ railLineId: null })
-    .where(eq(railNodes.railLineId, id));
+  await clearDerivedGraph(id);
 
   await db.delete(railLines).where(eq(railLines.id, id));
+  await deleteLogoObject(existing[0].logoKey);
   return true;
 }

@@ -106,16 +106,22 @@ takes ~15-30s while Aurora resumes from auto-pause; subsequent ones are fast.
 ## Deploying
 
 ```bash
-npm run deploy:dev          # deploy + migrate the dev stage
-npm run deploy:production    # deploy + migrate production (protected stage)
+npm run deploy:dev          # deploy the dev stage
+npm run deploy:production    # deploy production (protected stage)
 ```
+
+Migrations run automatically as part of every `sst deploy`: a `DatabaseMigrator`
+Lambda (see `infra/migrator.ts`) is invoked at deploy time whenever the migration
+files change, applying pending migrations idempotently. Under `sst dev` migrations
+stay manual (`npm run db:migrate:dev`) so starting a dev session never mutates the
+shared dev database unexpectedly.
 
 Other scripts:
 
 ```bash
 npm run db:generate          # drizzle-kit: generate a migration from schema changes
-npm run db:migrate:dev       # apply migrations to dev
-npm run db:migrate:production # apply migrations to production
+npm run db:migrate:dev       # apply migrations to dev (manual / sst dev workflow)
+npm run db:migrate:production # apply migrations to production manually if ever needed
 npm run remove:dev           # tear down the dev stage
 ```
 

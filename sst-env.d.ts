@@ -21,6 +21,10 @@ declare module "sst" {
       "type": "sst.aws.ApiGatewayV2"
       "url": string
     }
+    "AssetsBucket": {
+      "name": string
+      "type": "sst.aws.Bucket"
+    }
     "CorpusBucket": {
       "name": string
       "type": "sst.aws.Bucket"
@@ -30,6 +34,10 @@ declare module "sst" {
       "database": string
       "secretArn": string
       "type": "sst.sst.Linkable"
+    }
+    "DatabaseMigrator": {
+      "name": string
+      "type": "sst.aws.Function"
     }
     "Realtime": {
       "authorizer": string

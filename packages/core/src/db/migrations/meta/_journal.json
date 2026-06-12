@@ -22,6 +22,13 @@
       "when": 1781161296344,
       "tag": "0004_rail_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781200000000,
+      "tag": "0005_rail_line_logo",
+      "breakpoints": true
     }
   ]
 }

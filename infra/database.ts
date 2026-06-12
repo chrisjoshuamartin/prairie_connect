@@ -54,7 +54,7 @@ export const cluster = new aws.rds.Cluster(
   },
 );
 
-const dbInstance = new aws.rds.ClusterInstance(
+export const dbInstance = new aws.rds.ClusterInstance(
   "DatabaseInstance",
   {
     clusterIdentifier: cluster.id,

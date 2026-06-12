@@ -29,14 +29,15 @@ export default $config({
     const { userPool, userPoolClient, authDomain, googleLoginEnabled } =
       await import("./infra/auth");
     const { realtime } = await import("./infra/realtime");
-    const { corpusBucket } = await import("./infra/storage");
+    const { corpusBucket, assetsBucket } = await import("./infra/storage");
     const { ai } = await import("./infra/ai");
     const { api } = await import("./infra/api");
     const { admin } = await import("./infra/admin");
+    await import("./infra/migrator");
 
     return {
       apiUrl: api.url,
-      adminUrl: admin.url,
+      adminUrl: admin?.url,
       docsUrl: $interpolate`${api.url}/docs`,
       openapiUrl: $interpolate`${api.url}/openapi.json`,
       region: "ca-central-1",
@@ -47,6 +48,7 @@ export default $config({
       realtimeEndpoint: realtime.endpoint,
       realtimeAuthorizer: realtime.authorizer,
       corpusBucket: corpusBucket.name,
+      assetsBucket: assetsBucket.name,
       knowledgeBaseId: ai.properties.knowledgeBaseId,
       databaseHost: cluster.endpoint,
     };

@@ -21,6 +21,8 @@ export const railLines = pgTable("rail_lines", {
     .default({}),
   /** Original filename (or URL) the GeoJSON came from. */
   sourceName: text("source_name"),
+  /** S3 key in AssetsBucket, e.g. logos/{id}/logo.png */
+  logoKey: text("logo_key"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

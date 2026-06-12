@@ -1,11 +1,13 @@
+import { sql, type SQL } from "drizzle-orm";
 import { customType } from "drizzle-orm/pg-core";
 
 /**
  * PostGIS / pgvector column types that Drizzle doesn't ship natively.
  *
- * Geography values are written as EWKT strings ("SRID=4326;POINT(lng lat)")
- * — Postgres casts text to geography implicitly. Reads come back as WKB hex;
- * queries that need coordinates should select ST_AsGeoJSON(...) explicitly.
+ * Geography values are EWKT strings ("SRID=4326;POINT(lng lat)"). Via the RDS
+ * Data API, inserts must use an explicit `::geography` cast (see
+ * `geographyFromEwkt`) — plain text params are not auto-cast. Reads come back
+ * as WKB hex; queries that need coordinates should select ST_AsGeoJSON(...).
  */
 export const geographyPoint = customType<{ data: string }>({
   dataType() {
@@ -40,4 +42,9 @@ export const vector1024 = customType<{ data: number[]; driverData: string }>({
 
 export function ewktPoint(lng: number, lat: number): string {
   return `SRID=4326;POINT(${lng} ${lat})`;
+}
+
+/** Explicit cast for geography columns when inserting via the RDS Data API. */
+export function geographyFromEwkt(ewkt: string): SQL {
+  return sql`${ewkt}::geography`;
 }

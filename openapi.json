@@ -437,6 +437,19 @@
               "null"
             ]
           },
+          "logoKey": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "logoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Public URL when a logo is set"
+          },
           "edgeCount": {
             "type": "number",
             "description": "Routing graph edges derived from this line"
@@ -455,6 +468,8 @@
           "operator",
           "description",
           "sourceName",
+          "logoKey",
+          "logoUrl",
           "edgeCount",
           "totalLengthKm",
           "createdAt"
@@ -575,6 +590,216 @@
               "geometry"
             ]
           }
+        ]
+      },
+      "UpdateRailLineResult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "operator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geometryUpdated": {
+            "type": "boolean"
+          },
+          "graphRebuilt": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "segmentCount": {
+                "type": "number"
+              },
+              "nodesCreated": {
+                "type": "number"
+              },
+              "nodesReused": {
+                "type": "number"
+              },
+              "edgesCreated": {
+                "type": "number"
+              },
+              "totalLengthKm": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "segmentCount",
+              "nodesCreated",
+              "nodesReused",
+              "edgesCreated",
+              "totalLengthKm"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "operator",
+          "description",
+          "geometryUpdated",
+          "graphRebuilt"
+        ]
+      },
+      "UpdateRailLine": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          },
+          "slug": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100,
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "operator": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 5000
+          },
+          "geojson": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "Replace geometry from GeoJSON; clears and rebuilds the derived routing graph by default"
+          },
+          "sourceName": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "rebuildGraph": {
+            "type": "boolean",
+            "default": true,
+            "description": "When geojson is provided, rebuild rail_nodes / rail_edges"
+          },
+          "snapToleranceM": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5000,
+            "default": 150
+          }
+        }
+      },
+      "RailLineLogoUploadUrlResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "S3 key — send back in PATCH after PUT succeeds"
+          },
+          "url": {
+            "type": "string",
+            "description": "Presigned PUT URL"
+          },
+          "expiresIn": {
+            "type": "number"
+          },
+          "logoUrl": {
+            "type": "string",
+            "description": "Public URL the logo will be served from"
+          }
+        },
+        "required": [
+          "key",
+          "url",
+          "expiresIn",
+          "logoUrl"
+        ]
+      },
+      "RailLineLogoUploadUrlRequest": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "contentType": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "description": "image/png | image/jpeg | image/webp | image/svg+xml"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType"
+        ]
+      },
+      "SetRailLineLogo": {
+        "type": "object",
+        "properties": {
+          "logoKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "logoKey"
+        ]
+      },
+      "AdminUsersPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "pageSize"
         ]
       },
       "RouteResult": {
@@ -2537,35 +2762,35 @@
         }
       }
     },
-    "/v1/admin/corridors": {
-      "post": {
+    "/v1/admin/corridors/{id}": {
+      "get": {
         "tags": [
           "Corridors"
         ],
-        "summary": "Create a corridor",
-        "description": "Pass `railLineId` to build the corridor around an imported rail line: its geometry is copied onto the corridor and its routing graph is tagged with the corridor. Operator defaults to the rail line's operator.",
+        "summary": "Get a corridor with geometry (admin)",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCorridor"
-              }
-            }
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
           }
-        },
+        ],
         "responses": {
-          "201": {
-            "description": "The created corridor",
+          "200": {
+            "description": "Corridor detail incl. GeoJSON geometry",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Corridor"
+                  "$ref": "#/components/schemas/CorridorDetail"
                 }
               }
             }
@@ -2599,21 +2824,9 @@
                 }
               }
             }
-          },
-          "409": {
-            "description": "Not configured / conflicting state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
           }
         }
-      }
-    },
-    "/v1/admin/corridors/{id}": {
+      },
       "patch": {
         "tags": [
           "Corridors"
@@ -2767,6 +2980,82 @@
                   "required": [
                     "error"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/corridors": {
+      "post": {
+        "tags": [
+          "Corridors"
+        ],
+        "summary": "Create a corridor",
+        "description": "Pass `railLineId` to build the corridor around an imported rail line: its geometry is copied onto the corridor and its routing graph is tagged with the corridor. Operator defaults to the rail line's operator.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCorridor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created corridor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Corridor"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not configured / conflicting state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -2969,6 +3258,109 @@
           }
         }
       },
+      "patch": {
+        "tags": [
+          "Rail lines"
+        ],
+        "summary": "Update a rail line",
+        "description": "Edit metadata (name, slug, operator, description). Optionally replace geometry from GeoJSON, which clears and rebuilds the derived routing graph and syncs linked corridors.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRailLine"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated rail line",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRailLineResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid GeoJSON",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not configured / conflicting state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Rail lines"
@@ -3017,6 +3409,314 @@
           },
           "404": {
             "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/raillines/{id}/logo/upload-url": {
+      "post": {
+        "tags": [
+          "Rail lines"
+        ],
+        "summary": "Get a presigned URL to upload a rail line logo",
+        "description": "Returns a presigned PUT URL for the public assets bucket. Upload the image bytes directly (same Content-Type), then PATCH the rail line with the returned `key` as `logoKey`.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RailLineLogoUploadUrlRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presigned upload URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RailLineLogoUploadUrlResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid content type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/raillines/{id}/logo": {
+      "patch": {
+        "tags": [
+          "Rail lines"
+        ],
+        "summary": "Attach an uploaded logo to a rail line",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRailLineLogo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logo attached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "logoKey": {
+                      "type": "string"
+                    },
+                    "logoUrl": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "logoKey",
+                    "logoUrl"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Rail lines"
+        ],
+        "summary": "Remove a rail line logo",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Logo removed"
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "List users (admin, paged)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            },
+            "required": false,
+            "name": "pageSize",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of users, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUsersPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid Bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient permissions",
             "content": {
               "application/json": {
                 "schema": {

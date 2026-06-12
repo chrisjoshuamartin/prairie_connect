@@ -1,7 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { apiJson, type ImportRailLineResult, type RailLineDetail } from "../api";
+import {
+  apiJson,
+  type ImportRailLineResult,
+  type UpdateRailLineResult,
+  type RailLineDetail,
+  type LogoUploadUrlResponse,
+} from "../api";
 
 export type ActionResult<T> =
   | { ok: true; data: T }
@@ -40,6 +46,34 @@ export async function importRailLineAction(
   return result;
 }
 
+export interface UpdateRailLineInput {
+  name?: string;
+  slug?: string;
+  operator?: string | null;
+  description?: string | null;
+  geojson?: string;
+  sourceName?: string;
+  rebuildGraph?: boolean;
+  snapToleranceM?: number;
+}
+
+export async function updateRailLineAction(
+  id: string,
+  input: UpdateRailLineInput,
+): Promise<ActionResult<UpdateRailLineResult>> {
+  const result = await run(() =>
+    apiJson<UpdateRailLineResult>(`/v1/admin/raillines/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+  );
+  if (result.ok) {
+    revalidatePath("/dashboard/raillines");
+    revalidatePath("/dashboard/corridors");
+  }
+  return result;
+}
+
 export async function deleteRailLineAction(id: string): Promise<ActionResult<void>> {
   const result = await run(() =>
     apiJson<void>(`/v1/admin/raillines/${id}`, { method: "DELETE" }),
@@ -55,4 +89,49 @@ export async function getRailLineDetailAction(
   id: string,
 ): Promise<ActionResult<RailLineDetail>> {
   return run(() => apiJson<RailLineDetail>(`/v1/admin/raillines/${id}`));
+}
+
+export async function getRailLineLogoUploadUrlAction(
+  railLineId: string,
+  filename: string,
+  contentType: string,
+): Promise<ActionResult<LogoUploadUrlResponse>> {
+  return run(() =>
+    apiJson<LogoUploadUrlResponse>(
+      `/v1/admin/raillines/${railLineId}/logo/upload-url`,
+      {
+        method: "POST",
+        body: JSON.stringify({ filename, contentType }),
+      },
+    ),
+  );
+}
+
+export async function setRailLineLogoAction(
+  railLineId: string,
+  logoKey: string,
+): Promise<ActionResult<{ logoKey: string; logoUrl: string }>> {
+  const result = await run(() =>
+    apiJson<{ logoKey: string; logoUrl: string }>(
+      `/v1/admin/raillines/${railLineId}/logo`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ logoKey }),
+      },
+    ),
+  );
+  if (result.ok) revalidatePath("/dashboard/raillines");
+  return result;
+}
+
+export async function deleteRailLineLogoAction(
+  railLineId: string,
+): Promise<ActionResult<void>> {
+  const result = await run(() =>
+    apiJson<void>(`/v1/admin/raillines/${railLineId}/logo`, {
+      method: "DELETE",
+    }),
+  );
+  if (result.ok) revalidatePath("/dashboard/raillines");
+  return result;
 }

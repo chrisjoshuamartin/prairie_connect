@@ -4,6 +4,10 @@ import { sql, eq } from "drizzle-orm";
 import { getDb } from "@prairie-connect/core/db/client";
 import { corridors, railLines, railEdges, railNodes } from "@prairie-connect/core/db/schema/index";
 import { slugify } from "@prairie-connect/core/rail/import";
+import {
+  deriveCorridorSlug,
+  findCorridorForRailLine,
+} from "@prairie-connect/core/corridors/slugs";
 import { requireRole } from "../middleware/auth";
 import {
   CorridorSchema,
@@ -99,6 +103,23 @@ corridorRoutes.openapi(
 
 type CorridorRow = typeof corridors.$inferSelect;
 
+interface CorridorDetailRow {
+  id: string;
+  slug: string;
+  name: string;
+  operator: string | null;
+  description: string | null;
+  rail_line_id: string | null;
+  metrics: Record<string, unknown> | string;
+  created_at: string | Date;
+  geojson: string | null;
+}
+
+function rows<T>(res: unknown): T[] {
+  const r = res as { rows?: T[] };
+  return (r.rows ?? (res as T[])) as T[];
+}
+
 function serializeAdmin(row: CorridorRow) {
   return {
     id: row.id,
@@ -162,6 +183,49 @@ async function detachGraph(corridorId: string) {
 
 corridorRoutes.openapi(
   createRoute({
+    method: "get",
+    path: "/v1/admin/corridors/{id}",
+    tags: ["Corridors"],
+    summary: "Get a corridor with geometry (admin)",
+    security: bearerSecurity,
+    request: { params: z.object({ id: z.string().uuid() }) },
+    responses: {
+      200: jsonOf(CorridorDetailSchema, "Corridor detail incl. GeoJSON geometry"),
+      ...unauthorized,
+      ...forbidden,
+      ...notFound,
+    },
+  }),
+  async (c) => {
+    await requireRole(c, ["admin"]);
+    const { id } = c.req.valid("param");
+    const res = await getDb().execute(sql`
+      SELECT id, slug, name, operator, description, rail_line_id, metrics, created_at,
+        ST_AsGeoJSON(geometry) AS geojson
+      FROM corridors WHERE id = ${id}::uuid
+    `);
+    const row = rows<CorridorDetailRow>(res)[0];
+    if (!row) throw new HTTPException(404, { message: "Corridor not found" });
+    return c.json(
+      {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        operator: row.operator,
+        description: row.description,
+        railLineId: row.rail_line_id,
+        metrics:
+          typeof row.metrics === "string" ? JSON.parse(row.metrics) : row.metrics,
+        createdAt: new Date(row.created_at).toISOString(),
+        geometry: row.geojson ? JSON.parse(row.geojson) : null,
+      },
+      200,
+    );
+  },
+);
+
+corridorRoutes.openapi(
+  createRoute({
     method: "post",
     path: "/v1/admin/corridors",
     tags: ["Corridors"],
@@ -186,12 +250,26 @@ corridorRoutes.openapi(
   async (c) => {
     await requireRole(c, ["admin"]);
     const body = c.req.valid("json");
-    const slug = body.slug ?? slugify(body.name);
+
+    const line = body.railLineId ? await getRailLineOr404(body.railLineId) : null;
+    if (body.railLineId) {
+      const existing = await findCorridorForRailLine(body.railLineId);
+      if (existing) {
+        throw new HTTPException(409, {
+          message: `A corridor already exists for this rail line (${existing.slug})`,
+        });
+      }
+    }
+
+    const slug = body.slug?.trim()
+      ? body.slug.trim()
+      : await deriveCorridorSlug({
+          name: body.name,
+          railLineId: body.railLineId,
+        });
     if (!slug) {
       throw new HTTPException(400, { message: "Could not derive a slug from the name" });
     }
-
-    const line = body.railLineId ? await getRailLineOr404(body.railLineId) : null;
 
     let row: CorridorRow;
     try {
@@ -208,12 +286,21 @@ corridorRoutes.openapi(
         .returning();
     } catch (err) {
       if (isUniqueViolation(err)) {
-        throw new HTTPException(409, { message: "A corridor with this slug already exists" });
+        throw new HTTPException(409, {
+          message: `A corridor with slug "${slug}" already exists — pick a different slug or delete the existing corridor`,
+        });
       }
       throw err;
     }
 
-    if (body.railLineId) await attachRailLine(row.id, body.railLineId);
+    if (body.railLineId) {
+      try {
+        await attachRailLine(row.id, body.railLineId);
+      } catch (err) {
+        await getDb().delete(corridors).where(eq(corridors.id, row.id));
+        throw err;
+      }
+    }
     return c.json(serializeAdmin(row), 201);
   },
 );
@@ -245,7 +332,15 @@ corridorRoutes.openapi(
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
 
-    if (body.railLineId) await getRailLineOr404(body.railLineId);
+    if (body.railLineId) {
+      await getRailLineOr404(body.railLineId);
+      const taken = await findCorridorForRailLine(body.railLineId);
+      if (taken && taken.id !== id) {
+        throw new HTTPException(409, {
+          message: `Another corridor already uses this rail line (${taken.slug})`,
+        });
+      }
+    }
 
     const set: Partial<CorridorRow> = {};
     if (body.name !== undefined) set.name = body.name;

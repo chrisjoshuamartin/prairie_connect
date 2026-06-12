@@ -20,6 +20,15 @@ export const UserSchema = z
   })
   .openapi("User");
 
+export const AdminUsersPageSchema = z
+  .object({
+    items: z.array(UserSchema),
+    total: z.number(),
+    page: z.number(),
+    pageSize: z.number(),
+  })
+  .openapi("AdminUsersPage");
+
 export const ListingSchema = z
   .object({
     id: z.string(),
@@ -123,11 +132,39 @@ export const RailLineSchema = z
     operator: z.string().nullable(),
     description: z.string().nullable(),
     sourceName: z.string().nullable(),
+    logoKey: z.string().nullable(),
+    logoUrl: z.string().nullable().describe("Public URL when a logo is set"),
     edgeCount: z.number().describe("Routing graph edges derived from this line"),
     totalLengthKm: z.number(),
     createdAt: z.string(),
   })
   .openapi("RailLine");
+
+export const RailLineLogoUploadUrlSchema = z
+  .object({
+    filename: z.string().min(1).max(200),
+    contentType: z
+      .string()
+      .min(1)
+      .max(200)
+      .describe("image/png | image/jpeg | image/webp | image/svg+xml"),
+  })
+  .openapi("RailLineLogoUploadUrlRequest");
+
+export const RailLineLogoUploadUrlResponseSchema = z
+  .object({
+    key: z.string().describe("S3 key — send back in PATCH after PUT succeeds"),
+    url: z.string().describe("Presigned PUT URL"),
+    expiresIn: z.number(),
+    logoUrl: z.string().describe("Public URL the logo will be served from"),
+  })
+  .openapi("RailLineLogoUploadUrlResponse");
+
+export const SetRailLineLogoSchema = z
+  .object({
+    logoKey: z.string().min(1).max(500),
+  })
+  .openapi("SetRailLineLogo");
 
 export const RailLineDetailSchema = RailLineSchema.extend({
   /** GeoJSON MultiLineString of the full line geometry. */
@@ -178,6 +215,52 @@ export const ImportRailLineResultSchema = z
     totalLengthKm: z.number(),
   })
   .openapi("ImportRailLineResult");
+
+export const UpdateRailLineSchema = z
+  .object({
+    name: z.string().min(2).max(200).optional(),
+    slug: z
+      .string()
+      .min(2)
+      .max(100)
+      .regex(/^[a-z0-9-]+$/)
+      .optional(),
+    operator: z.string().max(200).nullable().optional(),
+    description: z.string().max(5000).nullable().optional(),
+    geojson: z
+      .union([z.record(z.string(), z.unknown()), z.string()])
+      .optional()
+      .describe(
+        "Replace geometry from GeoJSON; clears and rebuilds the derived routing graph by default",
+      ),
+    sourceName: z.string().max(300).optional(),
+    rebuildGraph: z
+      .boolean()
+      .default(true)
+      .describe("When geojson is provided, rebuild rail_nodes / rail_edges"),
+    snapToleranceM: z.number().min(0).max(5000).default(150).optional(),
+  })
+  .openapi("UpdateRailLine");
+
+export const UpdateRailLineResultSchema = z
+  .object({
+    id: z.string(),
+    slug: z.string(),
+    name: z.string(),
+    operator: z.string().nullable(),
+    description: z.string().nullable(),
+    geometryUpdated: z.boolean(),
+    graphRebuilt: z
+      .object({
+        segmentCount: z.number(),
+        nodesCreated: z.number(),
+        nodesReused: z.number(),
+        edgesCreated: z.number(),
+        totalLengthKm: z.number(),
+      })
+      .nullable(),
+  })
+  .openapi("UpdateRailLineResult");
 
 export const CorridorDetailSchema = CorridorSchema.extend({
   /** GeoJSON MultiLineString of the corridor geometry (null if not loaded). */

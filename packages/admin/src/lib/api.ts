@@ -45,9 +45,18 @@ export interface RailLine {
   operator: string | null;
   description: string | null;
   sourceName: string | null;
+  logoKey: string | null;
+  logoUrl: string | null;
   edgeCount: number;
   totalLengthKm: number;
   createdAt: string;
+}
+
+export interface LogoUploadUrlResponse {
+  key: string;
+  url: string;
+  expiresIn: number;
+  logoUrl: string;
 }
 
 export interface RailLineDetail extends RailLine {
@@ -64,6 +73,37 @@ export interface ImportRailLineResult {
   totalLengthKm: number;
 }
 
+export interface UpdateRailLineResult {
+  id: string;
+  slug: string;
+  name: string;
+  operator: string | null;
+  description: string | null;
+  geometryUpdated: boolean;
+  graphRebuilt: {
+    segmentCount: number;
+    nodesCreated: number;
+    nodesReused: number;
+    edgesCreated: number;
+    totalLengthKm: number;
+  } | null;
+}
+
+export interface PlatformUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: "member" | "operator" | "edo" | "admin";
+  createdAt: string;
+}
+
+export interface UsersPage {
+  items: PlatformUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface Corridor {
   id: string;
   slug: string;
@@ -73,4 +113,8 @@ export interface Corridor {
   railLineId?: string | null;
   metrics: Record<string, unknown>;
   createdAt: string;
+}
+
+export interface CorridorDetail extends Corridor {
+  geometry: Record<string, unknown> | null;
 }
