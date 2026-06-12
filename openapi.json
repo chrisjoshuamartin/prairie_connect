@@ -92,6 +92,17 @@
               "other"
             ]
           },
+          "listingType": {
+            "type": "string",
+            "enum": [
+              "transload",
+              "port",
+              "terminal",
+              "elevator",
+              "producer",
+              "other"
+            ]
+          },
           "tags": {
             "type": "array",
             "items": {
@@ -113,6 +124,18 @@
           "province": {
             "type": [
               "string",
+              "null"
+            ]
+          },
+          "lat": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "lng": {
+            "type": [
+              "number",
               "null"
             ]
           },
@@ -141,10 +164,13 @@
           "slug",
           "description",
           "sector",
+          "listingType",
           "tags",
           "address",
           "city",
           "province",
+          "lat",
+          "lng",
           "verified",
           "status",
           "createdAt",
@@ -175,6 +201,19 @@
               "other"
             ],
             "default": "other"
+          },
+          "listingType": {
+            "type": "string",
+            "enum": [
+              "transload",
+              "port",
+              "terminal",
+              "elevator",
+              "producer",
+              "other"
+            ],
+            "default": "other",
+            "description": "Physical site type (transload, port, terminal, ...)"
           },
           "tags": {
             "type": "array",
@@ -986,6 +1025,239 @@
         "required": [
           "lat",
           "lng"
+        ]
+      },
+      "PlanRouteResult": {
+        "type": "object",
+        "properties": {
+          "legs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanLeg"
+            },
+            "description": "Ordered truck → rail → truck legs"
+          },
+          "originSite": {
+            "$ref": "#/components/schemas/PlanSite"
+          },
+          "destinationSite": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanSite"
+              },
+              {
+                "description": "Rail-served site nearest the destination"
+              }
+            ]
+          },
+          "totalDistanceKm": {
+            "type": "number"
+          },
+          "truckDistanceKm": {
+            "type": "number"
+          },
+          "railDistanceKm": {
+            "type": "number"
+          },
+          "geometry": {
+            "type": "object",
+            "additionalProperties": {},
+            "description": "GeoJSON FeatureCollection of every leg; features carry a `mode` property (truck | rail edge modes)"
+          }
+        },
+        "required": [
+          "legs",
+          "originSite",
+          "destinationSite",
+          "totalDistanceKm",
+          "truckDistanceKm",
+          "railDistanceKm",
+          "geometry"
+        ]
+      },
+      "PlanLeg": {
+        "type": "object",
+        "properties": {
+          "seq": {
+            "type": "number"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "truck",
+              "rail"
+            ]
+          },
+          "from": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "label",
+              "lat",
+              "lng"
+            ]
+          },
+          "to": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "label",
+              "lat",
+              "lng"
+            ]
+          },
+          "distanceKm": {
+            "type": "number"
+          },
+          "railDetail": {
+            "type": "object",
+            "properties": {
+              "segments": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RouteSegment"
+                }
+              },
+              "nearestOriginNode": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "distanceKm": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "distanceKm"
+                ]
+              },
+              "nearestDestinationNode": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "distanceKm": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "distanceKm"
+                ]
+              }
+            },
+            "required": [
+              "segments",
+              "nearestOriginNode",
+              "nearestDestinationNode"
+            ],
+            "description": "Present on rail legs only"
+          }
+        },
+        "required": [
+          "seq",
+          "mode",
+          "from",
+          "to",
+          "distanceKm"
+        ]
+      },
+      "PlanSite": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "listingType": {
+            "type": "string"
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "province": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "listingType",
+          "city",
+          "province",
+          "lat",
+          "lng"
+        ],
+        "description": "Rail-served site nearest the origin"
+      },
+      "PlanRouteRequest": {
+        "type": "object",
+        "properties": {
+          "origin": {
+            "$ref": "#/components/schemas/RouteEndpoint"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/RouteEndpoint"
+          }
+        },
+        "required": [
+          "origin",
+          "destination"
         ]
       },
       "SavedRoute": {
@@ -2266,6 +2538,22 @@
           {
             "schema": {
               "type": "string",
+              "enum": [
+                "transload",
+                "port",
+                "terminal",
+                "elevator",
+                "producer",
+                "other"
+              ]
+            },
+            "required": false,
+            "name": "type",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
               "maxLength": 200
             },
             "required": false,
@@ -2449,6 +2737,19 @@
                       "other"
                     ],
                     "default": "other"
+                  },
+                  "listingType": {
+                    "type": "string",
+                    "enum": [
+                      "transload",
+                      "port",
+                      "terminal",
+                      "elevator",
+                      "producer",
+                      "other"
+                    ],
+                    "default": "other",
+                    "description": "Physical site type (transload, port, terminal, ...)"
                   },
                   "tags": {
                     "type": "array",
@@ -3758,6 +4059,55 @@
           },
           "404": {
             "description": "No route found (empty network or disconnected nodes)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/routes/plan": {
+      "post": {
+        "tags": [
+          "Routing"
+        ],
+        "summary": "Plan a multimodal door-to-door route",
+        "description": "Prototype of the truck → transload → rail → transload/port → truck flow: trucks the load to the nearest rail-served directory site, routes it across the rail network with pgRouting, then trucks the final leg. Truck legs are straight-line estimates with a road-circuity factor.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanRouteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The multimodal plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanRouteResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No rail-served sites with locations, or no rail path between them",
             "content": {
               "application/json": {
                 "schema": {

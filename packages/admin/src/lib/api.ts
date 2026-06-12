@@ -118,3 +118,85 @@ export interface Corridor {
 export interface CorridorDetail extends Corridor {
   geometry: Record<string, unknown> | null;
 }
+
+export const LISTING_TYPES = [
+  "transload",
+  "port",
+  "terminal",
+  "elevator",
+  "producer",
+  "other",
+] as const;
+export type ListingType = (typeof LISTING_TYPES)[number];
+
+export const SECTORS = [
+  "agrivalue",
+  "lumber",
+  "wind",
+  "aggregates",
+  "minerals",
+  "logistics",
+  "other",
+] as const;
+export type Sector = (typeof SECTORS)[number];
+
+export interface Listing {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sector: Sector;
+  listingType: ListingType;
+  tags: string[];
+  address: string | null;
+  city: string | null;
+  province: string | null;
+  lat: number | null;
+  lng: number | null;
+  verified: boolean;
+  status: "draft" | "pending" | "published" | "archived";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlanSite {
+  id: string;
+  name: string;
+  slug: string;
+  listingType: string;
+  city: string | null;
+  province: string | null;
+  lat: number;
+  lng: number;
+}
+
+export interface PlanLeg {
+  seq: number;
+  mode: "truck" | "rail";
+  from: { label: string; lat: number; lng: number };
+  to: { label: string; lat: number; lng: number };
+  distanceKm: number;
+  railDetail?: {
+    segments: {
+      seq: number;
+      edgeId: number | null;
+      mode: string;
+      operator: string | null;
+      fromNode: { id: number; name: string | null };
+      toNode: { id: number; name: string | null };
+      lengthKm: number | null;
+    }[];
+    nearestOriginNode: { id: number; name: string | null; distanceKm: number };
+    nearestDestinationNode: { id: number; name: string | null; distanceKm: number };
+  };
+}
+
+export interface PlanRouteResult {
+  legs: PlanLeg[];
+  originSite: PlanSite;
+  destinationSite: PlanSite;
+  totalDistanceKm: number;
+  truckDistanceKm: number;
+  railDistanceKm: number;
+  geometry: { type: "FeatureCollection"; features: Record<string, unknown>[] };
+}

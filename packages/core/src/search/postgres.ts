@@ -137,7 +137,12 @@ export const postgresSearchProvider: SearchProvider = {
   async index(listingId: string): Promise<void> {
     const db = getDb();
     const [listing] = await db
-      .select()
+      .select({
+        name: directoryListings.name,
+        description: directoryListings.description,
+        sector: directoryListings.sector,
+        tags: directoryListings.tags,
+      })
       .from(directoryListings)
       .where(eq(directoryListings.id, listingId));
     if (!listing) return;

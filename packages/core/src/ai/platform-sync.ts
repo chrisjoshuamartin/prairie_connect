@@ -7,7 +7,11 @@ import {
 } from "@aws-sdk/client-s3";
 import { eq } from "drizzle-orm";
 import { getDb } from "../db/client";
-import { corridors, directoryListings } from "../db/schema/index";
+import {
+  corridors,
+  directoryListings,
+  listingDataColumns,
+} from "../db/schema/index";
 
 /**
  * Mirror the platform's own database content into the knowledge corpus so
@@ -38,7 +42,20 @@ interface CorpusDoc {
   metadata: Record<string, unknown>;
 }
 
-function corridorDoc(c: typeof corridors.$inferSelect): CorpusDoc {
+interface CorridorRow {
+  slug: string;
+  name: string;
+  operator: string | null;
+  description: string | null;
+  metrics: Record<string, unknown>;
+}
+
+type ListingRow = Omit<
+  typeof directoryListings.$inferSelect,
+  "location" | "embedding"
+>;
+
+function corridorDoc(c: CorridorRow): CorpusDoc {
   const metrics = Object.entries(c.metrics ?? {})
     .map(([k, v]) => `- ${k}: ${JSON.stringify(v)}`)
     .join("\n");
@@ -60,7 +77,7 @@ function corridorDoc(c: typeof corridors.$inferSelect): CorpusDoc {
   };
 }
 
-function listingDoc(l: typeof directoryListings.$inferSelect): CorpusDoc {
+function listingDoc(l: ListingRow): CorpusDoc {
   const place = [l.address, l.city, l.province].filter(Boolean).join(", ");
   const body = [
     `# ${l.name}`,
@@ -112,10 +129,20 @@ export interface PlatformSyncResult {
 
 export async function syncPlatformContent(): Promise<PlatformSyncResult> {
   const db = getDb();
+  // Explicit columns: the Data API can't return geography/vector values,
+  // so bare select() breaks once corridors/listings carry geometry.
   const [allCorridors, publishedListings] = await Promise.all([
-    db.select().from(corridors),
     db
-      .select()
+      .select({
+        slug: corridors.slug,
+        name: corridors.name,
+        operator: corridors.operator,
+        description: corridors.description,
+        metrics: corridors.metrics,
+      })
+      .from(corridors),
+    db
+      .select(listingDataColumns)
       .from(directoryListings)
       .where(eq(directoryListings.status, "published")),
   ]);

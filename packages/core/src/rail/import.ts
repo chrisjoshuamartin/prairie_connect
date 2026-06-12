@@ -129,7 +129,7 @@ export function slugify(name: string): string {
     .slice(0, 100);
 }
 
-function ewktLineString(coords: Position[]): string {
+export function ewktLineString(coords: Position[]): string {
   return `SRID=4326;LINESTRING(${coords.map(([lng, lat]) => `${lng} ${lat}`).join(",")})`;
 }
 

@@ -4,8 +4,10 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "@prairie-connect/core/db/client";
 import { savedRoutes } from "@prairie-connect/core/db/schema/index";
 import { findRoute } from "@prairie-connect/core/routing/pathfind";
+import { planMultimodalRoute } from "@prairie-connect/core/routing/plan";
 import { requireDbUser } from "../middleware/auth";
 import {
+  PlanRouteResultSchema,
   RouteEndpointSchema,
   RouteResultSchema,
   SavedRouteSchema,
@@ -77,6 +79,42 @@ routeRoutes.openapi(
       });
     }
     return c.json(result, 200);
+  },
+);
+
+const PlanRouteSchema = z
+  .object({
+    origin: RouteEndpointSchema,
+    destination: RouteEndpointSchema,
+  })
+  .openapi("PlanRouteRequest");
+
+routeRoutes.openapi(
+  createRoute({
+    method: "post",
+    path: "/v1/routes/plan",
+    tags: ["Routing"],
+    summary: "Plan a multimodal door-to-door route",
+    description:
+      "Prototype of the truck → transload → rail → transload/port → truck flow: trucks the load to the nearest rail-served directory site, routes it across the rail network with pgRouting, then trucks the final leg. Truck legs are straight-line estimates with a road-circuity factor.",
+    request: {
+      body: { content: { "application/json": { schema: PlanRouteSchema } }, required: true },
+    },
+    responses: {
+      200: jsonOf(PlanRouteResultSchema, "The multimodal plan"),
+      404: jsonOf(
+        z.object({ error: z.string() }),
+        "No rail-served sites with locations, or no rail path between them",
+      ),
+    },
+  }),
+  async (c) => {
+    const body = c.req.valid("json");
+    const result = await planMultimodalRoute(body);
+    if (!result.ok) {
+      throw new HTTPException(404, { message: result.failure.message });
+    }
+    return c.json(result.plan, 200);
   },
 );
 

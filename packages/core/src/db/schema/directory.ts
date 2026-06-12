@@ -1,3 +1,4 @@
+import { getTableColumns } from "drizzle-orm";
 import {
   pgTable,
   uuid,
@@ -30,6 +31,20 @@ export const LISTING_STATUSES = [
 export type ListingStatus = (typeof LISTING_STATUSES)[number];
 
 /**
+ * What kind of physical site the listing is — drives the map layers and
+ * the multimodal route planner (truck → transload → rail legs).
+ */
+export const LISTING_TYPES = [
+  "transload",
+  "port",
+  "terminal",
+  "elevator",
+  "producer",
+  "other",
+] as const;
+export type ListingType = (typeof LISTING_TYPES)[number];
+
+/**
  * Marketplace / directory listings: buyers, processors, transloads,
  * terminals, logistics providers — the corridor-first "verified listings"
  * from the proposal. Full-text + trigram indexes live in a hand-written
@@ -43,6 +58,10 @@ export const directoryListings = pgTable("directory_listings", {
   slug: text("slug").notNull().unique(),
   description: text("description"),
   sector: text("sector").$type<Sector>().notNull().default("other"),
+  listingType: text("listing_type")
+    .$type<ListingType>()
+    .notNull()
+    .default("other"),
   tags: jsonb("tags").$type<string[]>().notNull().default([]),
   address: text("address"),
   city: text("city"),
@@ -59,3 +78,16 @@ export const directoryListings = pgTable("directory_listings", {
     .notNull()
     .defaultNow(),
 });
+
+/**
+ * Every listing column the RDS Data API can actually return. The Data API
+ * rejects result sets containing geography/vector values
+ * ("UnsupportedResultException"), so reads must use this selection instead
+ * of a bare select(); coordinates are exposed via ST_X/ST_Y expressions
+ * where needed.
+ */
+export const listingDataColumns = (() => {
+  const { location: _location, embedding: _embedding, ...rest } =
+    getTableColumns(directoryListings);
+  return rest;
+})();

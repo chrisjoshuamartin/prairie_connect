@@ -1,11 +1,12 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@prairie-connect/core/db/client";
 import {
   intents,
   corridors,
   directoryListings,
+  listingDataColumns,
   savedRoutes,
 } from "@prairie-connect/core/db/schema/index";
 import { requireRole } from "../middleware/auth";
@@ -113,7 +114,11 @@ intentRoutes.openapi(
               .where(inArray(corridors.slug, corridorSlugs))
           : Promise.resolve([]),
         db
-          .select()
+          .select({
+            ...listingDataColumns,
+            lat: sql<number | null>`ST_Y(${directoryListings.location}::geometry)`.as("lat"),
+            lng: sql<number | null>`ST_X(${directoryListings.location}::geometry)`.as("lng"),
+          })
           .from(directoryListings)
           .where(
             and(
@@ -145,10 +150,13 @@ intentRoutes.openapi(
           slug: l.slug,
           description: l.description,
           sector: l.sector,
+          listingType: l.listingType,
           tags: l.tags,
           address: l.address,
           city: l.city,
           province: l.province,
+          lat: l.lat != null ? Number(l.lat) : null,
+          lng: l.lng != null ? Number(l.lng) : null,
           verified: l.verified,
           status: l.status,
           createdAt: l.createdAt.toISOString(),

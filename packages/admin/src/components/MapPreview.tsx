@@ -38,15 +38,33 @@ function collectPositions(value: unknown, out: [number, number][]) {
   for (const v of value) collectPositions(v, out);
 }
 
+export interface MapMarker {
+  lng: number;
+  lat: number;
+  color?: string;
+  /** Tooltip text. */
+  label?: string;
+}
+
 export function MapPreview({
   geojson,
+  markers,
+  onMapClick,
+  fitToData = true,
   className,
 }: {
   geojson: Record<string, unknown> | null;
+  markers?: MapMarker[];
+  onMapClick?: (pos: { lng: number; lat: number }) => void;
+  /** Re-fit the viewport whenever the GeoJSON changes (default true). */
+  fitToData?: boolean;
   className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRefs = useRef<maplibregl.Marker[]>([]);
+  const clickHandlerRef = useRef(onMapClick);
+  clickHandlerRef.current = onMapClick;
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -58,12 +76,29 @@ export function MapPreview({
       attributionControl: { compact: true },
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }));
+    map.on("click", (e) => {
+      clickHandlerRef.current?.({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+    });
     mapRef.current = map;
     return () => {
       map.remove();
       mapRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    for (const m of markerRefs.current) m.remove();
+    markerRefs.current = (markers ?? []).map((m) => {
+      const marker = new maplibregl.Marker({ color: m.color ?? "#e0a82e" })
+        .setLngLat([m.lng, m.lat]);
+      if (m.label) {
+        marker.setPopup(new maplibregl.Popup({ closeButton: false }).setText(m.label));
+      }
+      return marker.addTo(map);
+    });
+  }, [markers]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -92,7 +127,7 @@ export function MapPreview({
         });
       }
 
-      if (geojson) {
+      if (geojson && fitToData) {
         const positions: [number, number][] = [];
         collectPositions(geojson, positions);
         if (positions.length > 0) {
@@ -110,7 +145,7 @@ export function MapPreview({
     } else {
       map.once("load", apply);
     }
-  }, [geojson]);
+  }, [geojson, fitToData]);
 
   return (
     <div

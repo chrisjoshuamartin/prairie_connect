@@ -17,11 +17,11 @@
       "static/css/app/dashboard/corridors/page.css",
       "static/chunks/app/dashboard/corridors/page.js"
     ],
-    "/dashboard/schema/page": [
+    "/dashboard/routeplanner/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/dashboard/schema/page.css",
-      "static/chunks/app/dashboard/schema/page.js"
+      "static/css/app/dashboard/routeplanner/page.css",
+      "static/chunks/app/dashboard/routeplanner/page.js"
     ]
   }
 }

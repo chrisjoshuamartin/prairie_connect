@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T03:41:55.355Z",
+  "generatedAt": "2026-06-12T04:31:57.383Z",
   "tables": [
     {
       "id": "analytics_events",
@@ -234,6 +234,14 @@
         {
           "name": "sector",
           "dbName": "sector",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "listingType",
+          "dbName": "listing_type",
           "type": "text",
           "primaryKey": false,
           "unique": false,
@@ -1290,6 +1298,11 @@
             "method": "POST",
             "path": "/v1/routes/find",
             "summary": "Find a route across the rail network"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/routes/plan",
+            "summary": "Plan a multimodal door-to-door route"
           }
         ]
       },

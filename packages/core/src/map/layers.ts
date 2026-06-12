@@ -62,9 +62,12 @@ export const MAP_LAYERS: MapLayer[] = [
     title: "Ports",
     description: "Export gateways (Vancouver, Prince Rupert, Thunder Bay, Churchill).",
     kind: "point",
-    status: "planned",
+    status: "available",
     defaultVisible: false,
-    source: { type: "none" },
+    source: {
+      type: "geojson-api",
+      hint: "GET /v1/directory?type=port (listings carry lat/lng when located)",
+    },
   },
   {
     id: "transloads",
@@ -75,7 +78,7 @@ export const MAP_LAYERS: MapLayer[] = [
     defaultVisible: false,
     source: {
       type: "geojson-api",
-      hint: "GET /v1/directory?sector=logistics (listings carry lat/lng once geocoded)",
+      hint: "GET /v1/directory?type=transload (listings carry lat/lng when located)",
     },
   },
   {

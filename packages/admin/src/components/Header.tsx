@@ -8,6 +8,8 @@ import { signOut, fetchAuthSession } from "aws-amplify/auth";
 const navItems = [
   { label: "Corridors", href: "/dashboard/corridors" },
   { label: "Rail lines", href: "/dashboard/raillines" },
+  { label: "Sites", href: "/dashboard/sites" },
+  { label: "Route planner", href: "/dashboard/routeplanner" },
   { label: "Schema", href: "/dashboard/schema" },
   { label: "Users", href: "/dashboard/users" },
 ];

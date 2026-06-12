@@ -1,4 +1,4 @@
 {
   "/dashboard/corridors/page": "app/dashboard/corridors/page.js",
-  "/dashboard/schema/page": "app/dashboard/schema/page.js"
+  "/dashboard/routeplanner/page": "app/dashboard/routeplanner/page.js"
 }

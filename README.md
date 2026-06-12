@@ -15,7 +15,7 @@ Built with [SST v4](https://sst.dev) on AWS (`ca-central-1`, profile `wcslra`).
 | Search | Postgres FTS + trigram + PostGIS geo filters, pgvector semantic/hybrid mode, behind a swappable `SearchProvider` |
 | Realtime | AWS IoT Core (MQTT over WSS) with a Cognito JWT custom authorizer |
 | AI chat | Bedrock Converse (Claude) with tool-use → typed UI actions; optional Knowledge Base RAG on the same Aurora cluster |
-| Routing | pgRouting (Dijkstra) over the `rail_nodes`/`rail_edges` graph |
+| Routing | pgRouting (Dijkstra) over the `rail_nodes`/`rail_edges` graph; multimodal truck→rail→truck planning via `/v1/routes/plan` |
 
 ```
 packages/core        DB schema/client, search, chat, routing, realtime helpers
@@ -41,6 +41,13 @@ endpoint enforces `users.role = 'admin'` server-side. Current tools:
   (`/v1/admin/corridors`); geometry is copied from the line and its graph is tagged
   with the corridor. Corridor slugs default to `{rail-line-slug}-corridor` to avoid
   collisions with the source line.
+- **Sites** — typed directory locations (`listing_type`: transload, port,
+  terminal, elevator, producer) with click-to-place map coordinates. Admin
+  creates are auto-published so they're immediately usable by the planner.
+- **Route planner** — prototype of the multimodal flow (`POST /v1/routes/plan`):
+  click an origin and destination, the API trucks to the nearest rail-served
+  site, routes the rail leg with pgRouting, and trucks the last mile. Truck
+  legs render dashed, rail legs solid.
 - **Schema** — interactive ER diagram of the Drizzle tables and foreign keys
   (React Flow), plus an API-surface view generated from `openapi.json`. Regenerate
   with `npm run schema:export` after schema or route changes.
@@ -129,13 +136,16 @@ Other scripts:
 npm run db:generate           # drizzle-kit: generate a migration from schema changes
 npm run db:migrate:dev        # apply migrations to dev (manual / sst dev workflow)
 npm run db:migrate:production # apply migrations to production manually if ever needed
+npm run tracks:import:dev     # import track_reference/*.geojson into the routing graph
+npm run seed:sites:dev        # seed demo transload/terminal/port sites for the planner
 npm run openapi               # regenerate openapi.json from Zod route schemas
 npm run schema:export         # regenerate packages/admin/src/data/schema-graph.json
 npm run remove:dev            # tear down the dev stage
 ```
 
 Under `sst dev`, the admin app is at `http://localhost:3000` with **Corridors**,
-**Rail lines**, **Schema**, and **Users** in the nav. Run `npm run schema:export`
+**Rail lines**, **Sites**, **Route planner**, **Schema**, and **Users** in the
+nav. Run `npm run schema:export`
 after changing Drizzle schema files or API routes so the schema visualizer stays
 current (commit the updated JSON alongside schema/OpenAPI changes).
 
@@ -215,4 +225,29 @@ Endpoints supporting the curated prototype experience (all public unless noted):
 
 ## Seeding the rail network
 
-Route finding needs `rail_nodes` / `rail_edges` rows (corridor geometry, interchanges, ports). Import scripts land in `scripts/` as corridor data becomes available; until then `/v1/routes/find` returns 404 (no route).
+Route finding needs `rail_nodes` / `rail_edges` rows. The national track
+reference (NRWN provincial GeoJSON in `track_reference/`, gitignored due to
+size) is imported with:
+
+```bash
+npm run tracks:import:dev               # all of track_reference/*.geojson
+npm run tracks:import:dev -- --replace  # rebuild groups that already exist
+```
+
+The importer filters to the routable network (Operational **Main / Connecting /
+Wye** trackage — yards, spurs, and sidings are skipped), groups segments into
+one rail line per operator + province (e.g. "Canadian National (SK)"), snaps
+segment endpoints in memory (150 m tolerance) so the provinces stitch into one
+graph, and sets distance-based edge costs so Dijkstra minimizes kilometres.
+CN/CP/BNSF edges get `mode = class1`, everything else `shortline`.
+
+For the multimodal planner (`POST /v1/routes/plan` and the admin **Route
+planner** page), also seed rail-served sites:
+
+```bash
+npm run seed:sites:dev   # demo transloads (SK/AB/BC) + Ports of Vancouver & Prince Rupert
+```
+
+The planner picks the nearest published `transload` / `terminal` / `port`
+listing to each endpoint, so the demo works end-to-end once tracks and sites
+are in.

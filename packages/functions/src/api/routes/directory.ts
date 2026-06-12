@@ -4,7 +4,9 @@ import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { getDb } from "@prairie-connect/core/db/client";
 import {
   directoryListings,
+  listingDataColumns,
   SECTORS,
+  LISTING_TYPES,
 } from "@prairie-connect/core/db/schema/index";
 import { ewktPoint } from "@prairie-connect/core/db/schema/types";
 import { searchProvider } from "@prairie-connect/core/search/index";
@@ -22,7 +24,20 @@ import type { AppEnv } from "../types";
 
 export const directoryRoutes = createRouter();
 
-type ListingRow = typeof directoryListings.$inferSelect;
+/**
+ * The Data API can't return geography values, so the raw `location` column
+ * is excluded and coordinates are selected as ST_X/ST_Y expressions.
+ */
+const listingSelection = {
+  ...listingDataColumns,
+  lat: sql<number | null>`ST_Y(${directoryListings.location}::geometry)`.as("lat"),
+  lng: sql<number | null>`ST_X(${directoryListings.location}::geometry)`.as("lng"),
+};
+
+type ListingRow = Omit<
+  typeof directoryListings.$inferSelect,
+  "location" | "embedding"
+> & { lat: number | null; lng: number | null };
 
 function serialize(listing: ListingRow) {
   return {
@@ -31,10 +46,13 @@ function serialize(listing: ListingRow) {
     slug: listing.slug,
     description: listing.description,
     sector: listing.sector,
+    listingType: listing.listingType,
     tags: listing.tags,
     address: listing.address,
     city: listing.city,
     province: listing.province,
+    lat: listing.lat != null ? Number(listing.lat) : null,
+    lng: listing.lng != null ? Number(listing.lng) : null,
     verified: listing.verified,
     status: listing.status,
     createdAt: listing.createdAt.toISOString(),
@@ -59,6 +77,7 @@ directoryRoutes.openapi(
     request: {
       query: z.object({
         sector: z.enum(SECTORS).optional(),
+        type: z.enum(LISTING_TYPES).optional(),
         q: z.string().max(200).optional(),
         limit: z.coerce.number().int().positive().max(100).default(20),
         offset: z.coerce.number().int().min(0).default(0),
@@ -69,9 +88,10 @@ directoryRoutes.openapi(
     },
   }),
   async (c) => {
-    const { sector, q, limit, offset } = c.req.valid("query");
+    const { sector, type, q, limit, offset } = c.req.valid("query");
     const filters = [eq(directoryListings.status, "published")];
     if (sector) filters.push(eq(directoryListings.sector, sector));
+    if (type) filters.push(eq(directoryListings.listingType, type));
     if (q) {
       filters.push(
         or(
@@ -81,7 +101,7 @@ directoryRoutes.openapi(
       );
     }
     const listings = await getDb()
-      .select()
+      .select(listingSelection)
       .from(directoryListings)
       .where(and(...filters))
       .orderBy(desc(directoryListings.verified), desc(directoryListings.createdAt))
@@ -107,7 +127,7 @@ directoryRoutes.openapi(
     const { idOrSlug } = c.req.valid("param");
     const isUuid = /^[0-9a-f-]{36}$/i.test(idOrSlug);
     const [listing] = await getDb()
-      .select()
+      .select(listingSelection)
       .from(directoryListings)
       .where(
         isUuid
@@ -160,6 +180,7 @@ directoryRoutes.openapi(
         slug,
         description: body.description ?? null,
         sector: body.sector,
+        listingType: body.listingType,
         tags: body.tags,
         address: body.address ?? null,
         city: body.city ?? null,
@@ -169,7 +190,7 @@ directoryRoutes.openapi(
             ? ewktPoint(body.lng, body.lat)
             : undefined,
       })
-      .returning();
+      .returning(listingSelection);
 
     // Best-effort embedding refresh so the listing is semantically
     // searchable as soon as it's published.
@@ -213,7 +234,10 @@ directoryRoutes.openapi(
     const db = getDb();
 
     const [listing] = await db
-      .select()
+      .select({
+        id: directoryListings.id,
+        ownerUserId: directoryListings.ownerUserId,
+      })
       .from(directoryListings)
       .where(eq(directoryListings.id, id));
     if (!listing) throw new HTTPException(404, { message: "Listing not found" });
@@ -235,6 +259,7 @@ directoryRoutes.openapi(
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.description !== undefined ? { description: body.description } : {}),
         ...(body.sector !== undefined ? { sector: body.sector } : {}),
+        ...(body.listingType !== undefined ? { listingType: body.listingType } : {}),
         ...(body.tags !== undefined ? { tags: body.tags } : {}),
         ...(body.address !== undefined ? { address: body.address } : {}),
         ...(body.city !== undefined ? { city: body.city } : {}),
@@ -247,7 +272,7 @@ directoryRoutes.openapi(
         updatedAt: sql`now()`,
       })
       .where(eq(directoryListings.id, id))
-      .returning();
+      .returning(listingSelection);
 
     searchProvider.index(updated.id).catch((err) =>
       console.warn("[directory] index failed", err),

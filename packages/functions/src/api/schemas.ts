@@ -2,6 +2,7 @@ import { z } from "@hono/zod-openapi";
 import {
   SECTORS,
   LISTING_STATUSES,
+  LISTING_TYPES,
   USER_ROLES,
 } from "@prairie-connect/core/db/schema/index";
 import { uiActionSchema } from "@prairie-connect/core/chat/actions";
@@ -36,10 +37,13 @@ export const ListingSchema = z
     slug: z.string(),
     description: z.string().nullable(),
     sector: z.enum(SECTORS),
+    listingType: z.enum(LISTING_TYPES),
     tags: z.array(z.string()),
     address: z.string().nullable(),
     city: z.string().nullable(),
     province: z.string().nullable(),
+    lat: z.number().nullable(),
+    lng: z.number().nullable(),
     verified: z.boolean(),
     status: z.enum(LISTING_STATUSES),
     createdAt: z.string(),
@@ -52,6 +56,10 @@ export const CreateListingSchema = z
     name: z.string().min(2).max(200),
     description: z.string().max(5000).optional(),
     sector: z.enum(SECTORS).default("other"),
+    listingType: z
+      .enum(LISTING_TYPES)
+      .default("other")
+      .describe("Physical site type (transload, port, terminal, ...)"),
     tags: z.array(z.string()).max(20).default([]),
     address: z.string().optional(),
     city: z.string().optional(),
@@ -306,6 +314,61 @@ export const RouteResultSchema = z
     }),
   })
   .openapi("RouteResult");
+
+export const PlanSiteSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    slug: z.string(),
+    listingType: z.string(),
+    city: z.string().nullable(),
+    province: z.string().nullable(),
+    lat: z.number(),
+    lng: z.number(),
+  })
+  .openapi("PlanSite");
+
+export const PlanLegSchema = z
+  .object({
+    seq: z.number(),
+    mode: z.enum(["truck", "rail"]),
+    from: z.object({ label: z.string(), lat: z.number(), lng: z.number() }),
+    to: z.object({ label: z.string(), lat: z.number(), lng: z.number() }),
+    distanceKm: z.number(),
+    railDetail: z
+      .object({
+        segments: z.array(RouteSegmentSchema),
+        nearestOriginNode: z.object({
+          id: z.number(),
+          name: z.string().nullable(),
+          distanceKm: z.number(),
+        }),
+        nearestDestinationNode: z.object({
+          id: z.number(),
+          name: z.string().nullable(),
+          distanceKm: z.number(),
+        }),
+      })
+      .optional()
+      .describe("Present on rail legs only"),
+  })
+  .openapi("PlanLeg");
+
+export const PlanRouteResultSchema = z
+  .object({
+    legs: z.array(PlanLegSchema).describe("Ordered truck → rail → truck legs"),
+    originSite: PlanSiteSchema.describe("Rail-served site nearest the origin"),
+    destinationSite: PlanSiteSchema.describe("Rail-served site nearest the destination"),
+    totalDistanceKm: z.number(),
+    truckDistanceKm: z.number(),
+    railDistanceKm: z.number(),
+    geometry: z
+      .record(z.string(), z.unknown())
+      .describe(
+        "GeoJSON FeatureCollection of every leg; features carry a `mode` property (truck | rail edge modes)",
+      ),
+  })
+  .openapi("PlanRouteResult");
 
 export const SavedRouteSchema = z
   .object({
