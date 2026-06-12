@@ -335,6 +335,17 @@ export const PlanLegSchema = z
     from: z.object({ label: z.string(), lat: z.number(), lng: z.number() }),
     to: z.object({ label: z.string(), lat: z.number(), lng: z.number() }),
     distanceKm: z.number(),
+    source: z
+      .enum(["road", "estimate"])
+      .optional()
+      .describe(
+        "Truck legs only: road = Google Directions route, estimate = straight line × circuity factor",
+      ),
+    durationMinutes: z
+      .number()
+      .nullable()
+      .optional()
+      .describe("Truck legs only: drive time when routed on roads"),
     railDetail: z
       .object({
         segments: z.array(RouteSegmentSchema),
@@ -354,6 +365,52 @@ export const PlanLegSchema = z
   })
   .openapi("PlanLeg");
 
+export const PlanOptionsSchema = z
+  .object({
+    useYardConnectors: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Allow yard/spur/siding/crossover trackage as cost-penalized connectors; off restricts routing to Main/Connecting/Wye trackage",
+      ),
+    yardCostFactor: z
+      .number()
+      .min(1)
+      .max(100)
+      .default(5)
+      .describe("Cost multiplier for connector trackage"),
+    preferSingleOperator: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Penalize railways other than the one serving the chosen origin site, approximating interchange cost",
+      ),
+    operatorPenaltyFactor: z
+      .number()
+      .min(1)
+      .max(100)
+      .default(2)
+      .describe("Cost multiplier for non-preferred operators"),
+    truckCostFactor: z
+      .number()
+      .min(1)
+      .max(10)
+      .default(3)
+      .describe(
+        "How much more a truck-km costs than a rail-km when scoring candidate site pairs; higher values favour longer rail and shorter drayage",
+      ),
+    siteCandidates: z
+      .number()
+      .int()
+      .min(1)
+      .max(3)
+      .default(1)
+      .describe(
+        "Candidate sites per endpoint; all pairs are evaluated and the cheapest door-to-door plan wins",
+      ),
+  })
+  .openapi("PlanRouteOptions");
+
 export const PlanRouteResultSchema = z
   .object({
     legs: z.array(PlanLegSchema).describe("Ordered truck → rail → truck legs"),
@@ -362,6 +419,11 @@ export const PlanRouteResultSchema = z
     totalDistanceKm: z.number(),
     truckDistanceKm: z.number(),
     railDistanceKm: z.number(),
+    preferredOperator: z
+      .string()
+      .nullable()
+      .describe("Operator the rail leg was biased toward (preferSingleOperator)"),
+    evaluatedPairs: z.number().describe("Site pairs evaluated for this plan"),
     geometry: z
       .record(z.string(), z.unknown())
       .describe(

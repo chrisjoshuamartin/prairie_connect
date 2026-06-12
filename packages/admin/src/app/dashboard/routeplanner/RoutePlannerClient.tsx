@@ -2,7 +2,11 @@
 
 import { useMemo, useState, useTransition } from "react";
 import type { Listing, PlanRouteResult } from "@/lib/api";
-import { planRouteAction } from "@/lib/actions/routeplanner";
+import {
+  planRouteAlternativesAction,
+  type PlanAlternative,
+  type PlanPreset,
+} from "@/lib/actions/routeplanner";
 import { formatKm } from "@/lib/utils";
 import { RoutePlannerMap, type PlannerPin } from "./RoutePlannerMap";
 
@@ -23,12 +27,69 @@ const LEG_BADGES: Record<"truck" | "rail", { label: string; className: string }>
   },
 };
 
+function buildPresets(siteCandidates: number): PlanPreset[] {
+  return [
+    {
+      id: "shortest",
+      label: "Shortest",
+      options: { siteCandidates },
+    },
+    {
+      id: "single-railway",
+      label: "Single railway",
+      options: { preferSingleOperator: true, siteCandidates },
+    },
+    {
+      id: "mainline-only",
+      label: "Mainline only",
+      options: { useYardConnectors: false, siteCandidates },
+    },
+  ];
+}
+
+const PRESET_HINTS: Record<string, string> = {
+  shortest: "Fewest kilometres, railways mixed freely",
+  "single-railway": "Penalizes interchanging between railways",
+  "mainline-only": "No yard/spur connectors — may find no path",
+};
+
+/** Collapse the rail features into consecutive same-operator runs. */
+function operatorRuns(plan: PlanRouteResult): { operator: string; km: number }[] {
+  const runs: { operator: string; km: number }[] = [];
+  for (const f of plan.geometry.features) {
+    const props = f.properties as Record<string, unknown> | undefined;
+    if (!props || props.mode === "truck") continue;
+    const operator = (props.operator as string) ?? "Unknown";
+    const km = typeof props.lengthKm === "number" ? props.lengthKm : 0;
+    const last = runs[runs.length - 1];
+    if (last && last.operator === operator) last.km += km;
+    else runs.push({ operator, km });
+  }
+  return runs;
+}
+
+/** "CN 879 km" or "CN → CP → CN" with interchange count. */
+function routeVia(plan: PlanRouteResult): string {
+  const runs = operatorRuns(plan);
+  if (runs.length === 0) return "—";
+  if (runs.length === 1)
+    return `${runs[0].operator} (${formatKm(runs[0].km)})`;
+  return `${runs.map((r) => r.operator).join(" → ")} (${runs.length - 1} interchange${runs.length > 2 ? "s" : ""})`;
+}
+
 export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
   const [pending, startTransition] = useTransition();
   const [origin, setOrigin] = useState<Point | null>(null);
   const [destination, setDestination] = useState<Point | null>(null);
-  const [plan, setPlan] = useState<PlanRouteResult | null>(null);
+  const [alternatives, setAlternatives] = useState<PlanAlternative[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [siteCandidates, setSiteCandidates] = useState(1);
   const [error, setError] = useState<string | null>(null);
+
+  const selected = useMemo(() => {
+    const alt = alternatives.find((a) => a.id === selectedId);
+    return alt && alt.ok ? alt.plan : null;
+  }, [alternatives, selectedId]);
 
   const railServedCount = useMemo(
     () =>
@@ -50,14 +111,16 @@ export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
       // Both already set — start a fresh plan from this click.
       setOrigin(pos);
       setDestination(null);
-      setPlan(null);
+      setAlternatives([]);
+      setSelectedId(null);
     }
   }
 
   function handleClear() {
     setOrigin(null);
     setDestination(null);
-    setPlan(null);
+    setAlternatives([]);
+    setSelectedId(null);
     setError(null);
   }
 
@@ -65,29 +128,47 @@ export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
     if (!origin || !destination) return;
     setOrigin(destination);
     setDestination(origin);
-    setPlan(null);
+    setAlternatives([]);
+    setSelectedId(null);
   }
 
   function handlePlan() {
     if (!origin || !destination) return;
     setError(null);
     startTransition(async () => {
-      const res = await planRouteAction({
-        origin: { ...origin, label: "Origin" },
-        destination: { ...destination, label: "Destination" },
-      });
-      if (res.ok) {
-        setPlan(res.data);
+      const results = await planRouteAlternativesAction(
+        { ...origin, label: "Origin" },
+        { ...destination, label: "Destination" },
+        buildPresets(siteCandidates),
+      );
+      setAlternatives(results);
+      // Select the cheapest successful alternative by default, weighting
+      // truck km heavier than rail km (mirrors the server-side objective).
+      const ok = results.filter(
+        (r): r is Extract<PlanAlternative, { ok: true }> => r.ok,
+      );
+      if (ok.length > 0) {
+        const weighted = (p: PlanRouteResult) =>
+          p.truckDistanceKm * 3 + p.railDistanceKm;
+        const cheapest = ok.reduce((a, b) =>
+          weighted(b.plan) < weighted(a.plan) ? b : a,
+        );
+        setSelectedId(cheapest.id);
       } else {
-        setPlan(null);
-        setError(res.error);
+        setSelectedId(null);
+        const shortest = results.find((r) => r.id === "shortest");
+        setError(
+          shortest && !shortest.ok
+            ? shortest.error
+            : "No route found for any strategy",
+        );
       }
     });
   }
 
   const pins = useMemo<PlannerPin[]>(() => {
     const activeSiteIds = new Set(
-      plan ? [plan.originSite.id, plan.destinationSite.id] : [],
+      selected ? [selected.originSite.id, selected.destinationSite.id] : [],
     );
     const out: PlannerPin[] = sites
       .filter((s) => s.lat != null && s.lng != null)
@@ -100,19 +181,7 @@ export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
     if (origin) out.push({ ...origin, kind: "origin", label: "Origin (A)" });
     if (destination) out.push({ ...destination, kind: "destination", label: "Destination (B)" });
     return out;
-  }, [sites, origin, destination, plan]);
-
-  const railOperators = useMemo(() => {
-    const rail = plan?.legs.find((l) => l.mode === "rail");
-    if (!rail?.railDetail) return [];
-    return [
-      ...new Set(
-        rail.railDetail.segments
-          .map((s) => s.operator)
-          .filter((o): o is string => Boolean(o)),
-      ),
-    ];
-  }, [plan]);
+  }, [sites, origin, destination, selected]);
 
   return (
     <div className="space-y-6">
@@ -122,10 +191,23 @@ export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
           <p className="text-sm text-neutral-400 mt-1">
             Prototype of the multimodal flow: truck to the nearest transload,
             rail across the network, truck (or port) at the far end. Click the
-            map to set origin and destination.
+            map to set origin and destination — each plan compares routing
+            strategies side by side.
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm text-neutral-400">
+            Sites/end
+            <select
+              value={siteCandidates}
+              onChange={(e) => setSiteCandidates(Number(e.target.value))}
+              className="px-2 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-sm text-neutral-100 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value={1}>1</option>
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+            </select>
+          </label>
           <button
             onClick={handleSwap}
             disabled={!origin || !destination}
@@ -168,7 +250,7 @@ export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <RoutePlannerMap
-            geojson={plan?.geometry ?? null}
+            geojson={selected?.geometry ?? null}
             pins={pins}
             onMapClick={handleMapClick}
           />
@@ -208,22 +290,80 @@ export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
             </p>
           </div>
 
-          {plan && (
+          {alternatives.length > 0 && (
+            <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-4 space-y-3">
+              <h2 className="font-medium text-neutral-100">Route options</h2>
+              <div className="space-y-2">
+                {alternatives.map((alt) => {
+                  const isSelected = alt.id === selectedId;
+                  if (!alt.ok) {
+                    return (
+                      <div
+                        key={alt.id}
+                        className="w-full p-3 rounded-lg border border-neutral-800 bg-neutral-950/50 opacity-70"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-neutral-400">
+                            {alt.label}
+                          </span>
+                          <span className="text-xs text-red-400/80">No route</span>
+                        </div>
+                        <p className="text-xs text-neutral-600 mt-1">
+                          {PRESET_HINTS[alt.id]}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      key={alt.id}
+                      type="button"
+                      onClick={() => setSelectedId(alt.id)}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        isSelected
+                          ? "border-primary-500 bg-primary-950/40"
+                          : "border-neutral-800 bg-neutral-950/50 hover:border-neutral-600"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-sm font-medium ${
+                            isSelected ? "text-primary-300" : "text-neutral-200"
+                          }`}
+                        >
+                          {alt.label}
+                        </span>
+                        <span className="text-sm text-neutral-300">
+                          {formatKm(alt.plan.totalDistanceKm)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-1">
+                        {formatKm(alt.plan.railDistanceKm)} rail ·{" "}
+                        {formatKm(alt.plan.truckDistanceKm)} truck
+                      </p>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        via {routeVia(alt.plan)}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {selected && (
             <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-4 space-y-4">
               <div>
-                <h2 className="font-medium text-neutral-100">Plan</h2>
+                <h2 className="font-medium text-neutral-100">Legs</h2>
                 <p className="text-sm text-neutral-400 mt-1">
-                  {formatKm(plan.totalDistanceKm)} total —{" "}
-                  {formatKm(plan.truckDistanceKm)} truck,{" "}
-                  {formatKm(plan.railDistanceKm)} rail
-                  {railOperators.length > 0 && (
-                    <> via {railOperators.join(", ")}</>
-                  )}
+                  {formatKm(selected.totalDistanceKm)} total —{" "}
+                  {formatKm(selected.truckDistanceKm)} truck,{" "}
+                  {formatKm(selected.railDistanceKm)} rail
                 </p>
               </div>
 
               <ol className="space-y-3">
-                {plan.legs.map((leg) => {
+                {selected.legs.map((leg) => {
                   const badge = LEG_BADGES[leg.mode];
                   return (
                     <li key={leg.seq} className="flex gap-3">
@@ -240,7 +380,12 @@ export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
                         </p>
                         <p className="text-xs text-neutral-500 mt-0.5">
                           {formatKm(leg.distanceKm)}
-                          {leg.mode === "truck" && " (straight-line est.)"}
+                          {leg.mode === "truck" &&
+                            (leg.source === "road"
+                              ? leg.durationMinutes != null
+                                ? ` · ${Math.round(leg.durationMinutes)} min drive`
+                                : " · road route"
+                              : " (straight-line est.)")}
                           {leg.railDetail &&
                             ` · ${leg.railDetail.segments.length} segments`}
                         </p>
@@ -253,24 +398,33 @@ export function RoutePlannerClient({ sites }: { sites: Listing[] }) {
               <div className="pt-3 border-t border-neutral-800 text-xs text-neutral-500 space-y-1">
                 <p>
                   Load on at{" "}
-                  <span className="text-neutral-300">{plan.originSite.name}</span>{" "}
-                  ({plan.originSite.listingType})
+                  <span className="text-neutral-300">{selected.originSite.name}</span>{" "}
+                  ({selected.originSite.listingType})
                 </p>
                 <p>
                   Load off at{" "}
-                  <span className="text-neutral-300">{plan.destinationSite.name}</span>{" "}
-                  ({plan.destinationSite.listingType})
+                  <span className="text-neutral-300">{selected.destinationSite.name}</span>{" "}
+                  ({selected.destinationSite.listingType})
                 </p>
+                {selected.preferredOperator && (
+                  <p>
+                    Biased toward{" "}
+                    <span className="text-neutral-300">{selected.preferredOperator}</span>
+                  </p>
+                )}
+                {selected.evaluatedPairs > 1 && (
+                  <p>Best of {selected.evaluatedPairs} site pairings</p>
+                )}
               </div>
             </div>
           )}
 
-          {!plan && (
+          {alternatives.length === 0 && (
             <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-4 text-sm text-neutral-500">
               Set both endpoints and hit{" "}
               <span className="text-neutral-300">Plan route</span>. The planner
-              picks the nearest rail-served site to each end, routes the rail
-              leg with pgRouting, and estimates the truck drayage legs.
+              computes three strategies in parallel — shortest, single
+              railway, and mainline-only — and lets you compare them.
             </div>
           )}
         </div>

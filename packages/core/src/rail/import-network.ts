@@ -19,13 +19,21 @@ import {
  *     queries per segment endpoint;
  *   - nodes and edges are bulk-inserted in batches.
  *
- * Features are filtered to the routable network (Operational status,
- * Main / Connecting / Wye classification — yards, spurs, and sidings are
- * noise for corridor-level routing) and grouped into one rail_lines row
- * per operator + province.
+ * Operational trackage is imported in two tiers, grouped into one
+ * rail_lines row per operator + province:
+ *   - through-route classifications (Main / Connecting / Wye), and
+ *   - connector classifications (Yard / Spur / Siding / Crossover), kept
+ *     because mainline subdivisions often only join through yard leads at
+ *     junctions. Routing applies a cost multiplier to these (or excludes
+ *     them) at query time via `attributes->>'trackClassification'`.
  */
 
-const ROUTABLE_CLASSIFICATIONS = new Set(["Main", "Connecting", "Wye"]);
+const THROUGH_CLASSIFICATIONS = new Set(["Main", "Connecting", "Wye"]);
+export const CONNECTOR_CLASSIFICATIONS = ["Yard", "Spur", "Siding", "Crossover"] as const;
+const ROUTABLE_CLASSIFICATIONS = new Set([
+  ...THROUGH_CLASSIFICATIONS,
+  ...CONNECTOR_CLASSIFICATIONS,
+]);
 const CLASS1_PATTERN = /canadian national|canadian pacific|burlington northern|union pacific|bnsf/i;
 
 export interface ImportTrackNetworkInput {
@@ -198,7 +206,7 @@ async function importGroup(
       slug,
       name,
       operator,
-      description: `Imported from the national track reference (${sourceName}); main/connecting trackage only.`,
+      description: `Imported from the national track reference (${sourceName}); operational trackage incl. yard/spur connectors.`,
       geometry: geographyFromEwkt("SRID=4326;MULTILINESTRING EMPTY"),
       properties: { featureCount: segments.length, source: "NRWN", province },
       sourceName,

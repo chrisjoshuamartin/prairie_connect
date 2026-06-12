@@ -7,11 +7,69 @@ function rows<T>(res: unknown): T[] {
   return (r.rows ?? (res as T[])) as T[];
 }
 
+export interface RoutingOptions {
+  /**
+   * Allow yard / spur / siding / crossover trackage as connectors
+   * (default true). They carry a cost multiplier so they stitch junctions
+   * together without becoming through-routes; disabling them restricts
+   * routing to Main / Connecting / Wye trackage.
+   */
+  useYardConnectors?: boolean;
+  /** Cost multiplier for connector trackage (default 5). */
+  yardCostFactor?: number;
+  /**
+   * Operator whose edges are preferred: every other operator's edges cost
+   * `operatorPenaltyFactor` times more, approximating the real cost of
+   * interchanging between railways.
+   */
+  preferOperator?: string;
+  /** Cost multiplier for non-preferred operators (default 2). */
+  operatorPenaltyFactor?: number;
+}
+
 export interface FindRouteInput {
   origin: { lat: number; lng: number };
   destination: { lat: number; lng: number };
   /** Reverse routing (site -> markets) uses the reverse cost weights. */
   reverse?: boolean;
+  options?: RoutingOptions;
+}
+
+const CONNECTOR_CLASSIFICATIONS = ["Yard", "Spur", "Siding", "Crossover"];
+
+/**
+ * pgRouting takes its edge set as a SQL string, so the routing options are
+ * baked into that inner query here. Values are clamped numbers / escaped
+ * literals — the string is passed to pgr_dijkstra as a bound parameter.
+ */
+function buildEdgesSql(options: RoutingOptions = {}): string {
+  const yardFactor = Math.min(Math.max(options.yardCostFactor ?? 5, 1), 100);
+  const operatorFactor = Math.min(
+    Math.max(options.operatorPenaltyFactor ?? 2, 1),
+    100,
+  );
+  const connectorList = CONNECTOR_CLASSIFICATIONS.map((c) => `'${c}'`).join(", ");
+  const isConnector = `COALESCE(attributes->>'trackClassification', '') IN (${connectorList})`;
+
+  const factors: string[] = [];
+  if (options.useYardConnectors !== false) {
+    factors.push(`(CASE WHEN ${isConnector} THEN ${yardFactor} ELSE 1 END)`);
+  }
+  if (options.preferOperator) {
+    const escaped = options.preferOperator.replace(/'/g, "''");
+    factors.push(
+      `(CASE WHEN operator IS DISTINCT FROM '${escaped}' THEN ${operatorFactor} ELSE 1 END)`,
+    );
+  }
+  const mult = factors.length > 0 ? ` * ${factors.join(" * ")}` : "";
+  const where =
+    options.useYardConnectors === false ? ` WHERE NOT (${isConnector})` : "";
+
+  return (
+    `SELECT id, source_id AS source, target_id AS target, ` +
+    `cost_weight${mult} AS cost, reverse_cost_weight${mult} AS reverse_cost ` +
+    `FROM rail_edges${where}`
+  );
 }
 
 export interface FindRouteResult {
@@ -74,6 +132,7 @@ export async function findRoute(input: FindRouteInput): Promise<FindRouteResult 
     ? [destNode.id, originNode.id]
     : [originNode.id, destNode.id];
 
+  const edgesSql = buildEdgesSql(input.options);
   const res = await getDb().execute(sql`
     SELECT p.seq, p.node, p.edge,
       e.id AS edge_id, e.mode, e.operator, e.length_km,
@@ -81,7 +140,7 @@ export async function findRoute(input: FindRouteInput): Promise<FindRouteResult 
       sn.name AS source_name, tn.name AS target_name,
       ST_AsGeoJSON(e.geometry) AS geojson
     FROM pgr_dijkstra(
-      'SELECT id, source_id AS source, target_id AS target, cost_weight AS cost, reverse_cost_weight AS reverse_cost FROM rail_edges',
+      ${edgesSql},
       ${startId}::bigint, ${endId}::bigint, directed := true
     ) p
     LEFT JOIN rail_edges e ON e.id = p.edge

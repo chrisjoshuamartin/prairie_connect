@@ -234,20 +234,37 @@ npm run tracks:import:dev               # all of track_reference/*.geojson
 npm run tracks:import:dev -- --replace  # rebuild groups that already exist
 ```
 
-The importer filters to the routable network (Operational **Main / Connecting /
-Wye** trackage — yards, spurs, and sidings are skipped), groups segments into
-one rail line per operator + province (e.g. "Canadian National (SK)"), snaps
-segment endpoints in memory (150 m tolerance) so the provinces stitch into one
-graph, and sets distance-based edge costs so Dijkstra minimizes kilometres.
-CN/CP/BNSF edges get `mode = class1`, everything else `shortline`.
+The importer keeps all Operational trackage in two tiers — through-routes
+(**Main / Connecting / Wye**) and connectors (**Yard / Spur / Siding /
+Crossover**, kept because mainlines often only join through yard leads at
+junctions). It groups segments into one rail line per operator + province
+(e.g. "Canadian National (SK)"), snaps segment endpoints in memory (150 m
+tolerance) so the provinces stitch into one graph, and sets distance-based
+edge costs so Dijkstra minimizes kilometres. CN/CP/BNSF edges get
+`mode = class1`, everything else `shortline`.
+
+Routing behaviour is tunable per request via `options` on `POST /v1/routes/plan`
+(also surfaced as toggles on the admin Route planner): `useYardConnectors`
+(default on, at `yardCostFactor` 5×), `preferSingleOperator` (penalizes
+switching railways at `operatorPenaltyFactor` 2×, biased toward the origin
+site's serving railway), `siteCandidates` (1-3; evaluates all site pairs and
+keeps the cheapest door-to-door plan), and `truckCostFactor` (default 3×;
+weights truck km heavier than rail km when scoring site pairs, since drayage
+costs several times more per km than rail).
 
 For the multimodal planner (`POST /v1/routes/plan` and the admin **Route
 planner** page), also seed rail-served sites:
 
 ```bash
-npm run seed:sites:dev   # demo transloads (SK/AB/BC) + Ports of Vancouver & Prince Rupert
+npm run seed:sites:dev   # ~20 demo transloads/terminals (SK/AB/BC) + Ports of Vancouver & Prince Rupert
 ```
 
 The planner picks the nearest published `transload` / `terminal` / `port`
 listing to each endpoint, so the demo works end-to-end once tracks and sites
 are in.
+
+Truck legs default to straight-line × 1.3 estimates. Set `GOOGLE_MAPS_API_KEY`
+in `.env.<stage>` (Google Cloud Console → enable the **Routes API**) to route
+the winning plan's truck legs on real roads — actual road geometry, distance,
+and drive time. Site-pair scoring still uses the estimate so only two Google
+requests are made per plan.

@@ -7,6 +7,7 @@ import { findRoute } from "@prairie-connect/core/routing/pathfind";
 import { planMultimodalRoute } from "@prairie-connect/core/routing/plan";
 import { requireDbUser } from "../middleware/auth";
 import {
+  PlanOptionsSchema,
   PlanRouteResultSchema,
   RouteEndpointSchema,
   RouteResultSchema,
@@ -86,6 +87,7 @@ const PlanRouteSchema = z
   .object({
     origin: RouteEndpointSchema,
     destination: RouteEndpointSchema,
+    options: PlanOptionsSchema.optional(),
   })
   .openapi("PlanRouteRequest");
 

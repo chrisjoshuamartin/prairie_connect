@@ -176,6 +176,9 @@ export interface PlanLeg {
   from: { label: string; lat: number; lng: number };
   to: { label: string; lat: number; lng: number };
   distanceKm: number;
+  /** Truck legs: "road" = Google Directions, "estimate" = straight line. */
+  source?: "road" | "estimate";
+  durationMinutes?: number | null;
   railDetail?: {
     segments: {
       seq: number;
@@ -191,6 +194,15 @@ export interface PlanLeg {
   };
 }
 
+export interface PlanOptions {
+  useYardConnectors?: boolean;
+  yardCostFactor?: number;
+  preferSingleOperator?: boolean;
+  operatorPenaltyFactor?: number;
+  siteCandidates?: number;
+  truckCostFactor?: number;
+}
+
 export interface PlanRouteResult {
   legs: PlanLeg[];
   originSite: PlanSite;
@@ -198,5 +210,7 @@ export interface PlanRouteResult {
   totalDistanceKm: number;
   truckDistanceKm: number;
   railDistanceKm: number;
+  preferredOperator: string | null;
+  evaluatedPairs: number;
   geometry: { type: "FeatureCollection"; features: Record<string, unknown>[] };
 }

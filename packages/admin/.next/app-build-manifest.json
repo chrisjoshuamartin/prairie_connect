@@ -11,12 +11,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/layout.js"
     ],
-    "/dashboard/corridors/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/dashboard/corridors/page.css",
-      "static/chunks/app/dashboard/corridors/page.js"
-    ],
     "/dashboard/routeplanner/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",

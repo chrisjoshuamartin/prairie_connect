@@ -24,4 +24,9 @@ api.route("$default", {
   link: [database, userPool, userPoolClient, realtimePublish, corpusBucket, assetsBucket, ai],
   timeout: "30 seconds",
   memory: "1024 MB",
+  environment: {
+    // Optional: enables real road routing for truck legs in the route
+    // planner (set in .env.<stage>). Empty = straight-line estimates.
+    GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY ?? "",
+  },
 });

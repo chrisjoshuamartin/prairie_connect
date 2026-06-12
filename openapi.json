@@ -1059,6 +1059,17 @@
           "railDistanceKm": {
             "type": "number"
           },
+          "preferredOperator": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Operator the rail leg was biased toward (preferSingleOperator)"
+          },
+          "evaluatedPairs": {
+            "type": "number",
+            "description": "Site pairs evaluated for this plan"
+          },
           "geometry": {
             "type": "object",
             "additionalProperties": {},
@@ -1072,6 +1083,8 @@
           "totalDistanceKm",
           "truckDistanceKm",
           "railDistanceKm",
+          "preferredOperator",
+          "evaluatedPairs",
           "geometry"
         ]
       },
@@ -1128,6 +1141,21 @@
           },
           "distanceKm": {
             "type": "number"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "road",
+              "estimate"
+            ],
+            "description": "Truck legs only: road = Google Directions route, estimate = straight line × circuity factor"
+          },
+          "durationMinutes": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Truck legs only: drive time when routed on roads"
           },
           "railDetail": {
             "type": "object",
@@ -1253,12 +1281,58 @@
           },
           "destination": {
             "$ref": "#/components/schemas/RouteEndpoint"
+          },
+          "options": {
+            "$ref": "#/components/schemas/PlanRouteOptions"
           }
         },
         "required": [
           "origin",
           "destination"
         ]
+      },
+      "PlanRouteOptions": {
+        "type": "object",
+        "properties": {
+          "useYardConnectors": {
+            "type": "boolean",
+            "default": true,
+            "description": "Allow yard/spur/siding/crossover trackage as cost-penalized connectors; off restricts routing to Main/Connecting/Wye trackage"
+          },
+          "yardCostFactor": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 5,
+            "description": "Cost multiplier for connector trackage"
+          },
+          "preferSingleOperator": {
+            "type": "boolean",
+            "default": false,
+            "description": "Penalize railways other than the one serving the chosen origin site, approximating interchange cost"
+          },
+          "operatorPenaltyFactor": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 2,
+            "description": "Cost multiplier for non-preferred operators"
+          },
+          "truckCostFactor": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 3,
+            "description": "How much more a truck-km costs than a rail-km when scoring candidate site pairs; higher values favour longer rail and shorter drayage"
+          },
+          "siteCandidates": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3,
+            "default": 1,
+            "description": "Candidate sites per endpoint; all pairs are evaluated and the cheapest door-to-door plan wins"
+          }
+        }
       },
       "SavedRoute": {
         "type": "object",
