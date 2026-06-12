@@ -20,9 +20,9 @@ Built with [SST v4](https://sst.dev) on AWS (`ca-central-1`, profile `wcslra`).
 ```
 packages/core        DB schema/client, search, chat, routing, realtime helpers
 packages/functions   Lambda handlers: the Hono API, Cognito trigger, IoT authorizer
-packages/admin       Internal admin tooling (Next.js) — rail line GeoJSON import, corridor adder
+packages/admin       Internal admin tooling (Next.js) — rail/corridor management, schema visualizer
 infra/               SST/Pulumi infrastructure modules
-scripts/             export-openapi.ts, smoke.ts
+scripts/             export-openapi.ts, export-schema-graph.ts, smoke.ts
 docs/                Project docs + frontend integration guide
 ```
 
@@ -33,12 +33,18 @@ stack output `adminUrl`). It's a pure client of the REST API — sign-in uses th
 Cognito User Pool, the resulting JWT is sent as a Bearer token, and every admin
 endpoint enforces `users.role = 'admin'` server-side. Current tools:
 
-- **Rail lines** — import rail route GeoJSON (`/v1/admin/raillines`); stores the
-  geometry and derives the `rail_nodes`/`rail_edges` pgRouting graph, snapping
-  segment endpoints onto existing nodes so separate lines stitch into one network.
-- **Corridors** — create a corridor around an imported rail line
+- **Rail lines** — import and edit rail route GeoJSON (`/v1/admin/raillines`);
+  stores the geometry and derives the `rail_nodes`/`rail_edges` pgRouting graph,
+  snapping segment endpoints onto existing nodes so separate lines stitch into one
+  network. Per-line logos upload to the public assets bucket.
+- **Corridors** — create and edit a corridor around an imported rail line
   (`/v1/admin/corridors`); geometry is copied from the line and its graph is tagged
-  with the corridor.
+  with the corridor. Corridor slugs default to `{rail-line-slug}-corridor` to avoid
+  collisions with the source line.
+- **Schema** — interactive ER diagram of the Drizzle tables and foreign keys
+  (React Flow), plus an API-surface view generated from `openapi.json`. Regenerate
+  with `npm run schema:export` after schema or route changes.
+- **Users** — paginated list of platform users (`/v1/admin/users`).
 
 **Access**: the very first user to sign up is created with the `admin` role (fresh
 deployments are administrable without manual SQL); everyone after that starts as
@@ -76,7 +82,8 @@ generation all run on your machine with zero AWS:
 npm install
 npm test          # unit tests (UI action protocol, realtime authorizer)
 npm run smoke     # boots the Hono app in-process and hits real routes
-npm run openapi   # regenerate openapi.json
+npm run openapi        # regenerate openapi.json
+npm run schema:export  # regenerate admin schema-graph.json (Drizzle + OpenAPI)
 npm run typecheck
 ```
 
@@ -119,11 +126,18 @@ shared dev database unexpectedly.
 Other scripts:
 
 ```bash
-npm run db:generate          # drizzle-kit: generate a migration from schema changes
-npm run db:migrate:dev       # apply migrations to dev (manual / sst dev workflow)
+npm run db:generate           # drizzle-kit: generate a migration from schema changes
+npm run db:migrate:dev        # apply migrations to dev (manual / sst dev workflow)
 npm run db:migrate:production # apply migrations to production manually if ever needed
-npm run remove:dev           # tear down the dev stage
+npm run openapi               # regenerate openapi.json from Zod route schemas
+npm run schema:export         # regenerate packages/admin/src/data/schema-graph.json
+npm run remove:dev            # tear down the dev stage
 ```
+
+Under `sst dev`, the admin app is at `http://localhost:3000` with **Corridors**,
+**Rail lines**, **Schema**, and **Users** in the nav. Run `npm run schema:export`
+after changing Drizzle schema files or API routes so the schema visualizer stays
+current (commit the updated JSON alongside schema/OpenAPI changes).
 
 ## API docs (Swagger)
 

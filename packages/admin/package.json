@@ -9,8 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@xyflow/react": "^12.11.0",
     "aws-amplify": "^6.0.0",
     "aws-jwt-verify": "^5.0.0",
+    "elkjs": "^0.11.1",
     "maplibre-gl": "^5.0.0",
     "next": "^15.5.0",
     "react": "^19.0.0",

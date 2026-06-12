@@ -1,0 +1,1323 @@
+{
+  "generatedAt": "2026-06-12T03:41:55.355Z",
+  "tables": [
+    {
+      "id": "analytics_events",
+      "varName": "analyticsEvents",
+      "columns": [
+        {
+          "name": "type",
+          "dbName": "type",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "payload",
+          "dbName": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "page",
+          "dbName": "page",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        }
+      ],
+      "domains": [
+        "platform"
+      ]
+    },
+    {
+      "id": "chat_messages",
+      "varName": "chatMessages",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "conversationId",
+          "dbName": "conversation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true,
+          "references": "conversations"
+        },
+        {
+          "name": "role",
+          "dbName": "role",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "content",
+          "dbName": "content",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "platform"
+      ]
+    },
+    {
+      "id": "conversations",
+      "varName": "conversations",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "userId",
+          "dbName": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true,
+          "references": "users"
+        },
+        {
+          "name": "title",
+          "dbName": "title",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        }
+      ],
+      "domains": [
+        "platform"
+      ]
+    },
+    {
+      "id": "corridors",
+      "varName": "corridors",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "slug",
+          "dbName": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "unique": true,
+          "notNull": true
+        },
+        {
+          "name": "name",
+          "dbName": "name",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "operator",
+          "dbName": "operator",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "description",
+          "dbName": "description",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false,
+          "references": "rail_lines"
+        },
+        {
+          "name": "geometry",
+          "dbName": "geometry",
+          "type": "geographyMultiLineString",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "metrics",
+          "dbName": "metrics",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "rail",
+        "directory"
+      ]
+    },
+    {
+      "id": "directory_listings",
+      "varName": "directoryListings",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "ownerUserId",
+          "dbName": "owner_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false,
+          "references": "users"
+        },
+        {
+          "name": "organizationId",
+          "dbName": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false,
+          "references": "organizations"
+        },
+        {
+          "name": "name",
+          "dbName": "name",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "slug",
+          "dbName": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "unique": true,
+          "notNull": true
+        },
+        {
+          "name": "description",
+          "dbName": "description",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "sector",
+          "dbName": "sector",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "tags",
+          "dbName": "tags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "address",
+          "dbName": "address",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "city",
+          "dbName": "city",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "province",
+          "dbName": "province",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "location",
+          "dbName": "location",
+          "type": "geographyPoint",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "verified",
+          "dbName": "verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "status",
+          "dbName": "status",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "directory"
+      ]
+    },
+    {
+      "id": "featured_placements",
+      "varName": "featuredPlacements",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "title",
+          "dbName": "title",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "description",
+          "dbName": "description",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "imageUrl",
+          "dbName": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "linkUrl",
+          "dbName": "link_url",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false,
+          "references": "directory_listings"
+        },
+        {
+          "name": "corridorId",
+          "dbName": "corridor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false,
+          "references": "corridors"
+        },
+        {
+          "name": "targeting",
+          "dbName": "targeting",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "active",
+          "dbName": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "directory"
+      ]
+    },
+    {
+      "id": "intents",
+      "varName": "intents",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "slug",
+          "dbName": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "unique": true,
+          "notNull": true
+        },
+        {
+          "name": "title",
+          "dbName": "title",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "intro",
+          "dbName": "intro",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "icon",
+          "dbName": "icon",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "sortOrder",
+          "dbName": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "active",
+          "dbName": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "config",
+          "dbName": "config",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "platform"
+      ]
+    },
+    {
+      "id": "leads",
+      "varName": "leads",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "name",
+          "dbName": "name",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "email",
+          "dbName": "email",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "organization",
+          "dbName": "organization",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "phone",
+          "dbName": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "message",
+          "dbName": "message",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "relatedListingId",
+          "dbName": "related_listing_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "relatedCorridorId",
+          "dbName": "related_corridor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "relatedRouteId",
+          "dbName": "related_route_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "sourcePage",
+          "dbName": "source_page",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "status",
+          "dbName": "status",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "platform"
+      ]
+    },
+    {
+      "id": "organizations",
+      "varName": "organizations",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "name",
+          "dbName": "name",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "type",
+          "dbName": "type",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "website",
+          "dbName": "website",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        }
+      ],
+      "domains": [
+        "directory"
+      ]
+    },
+    {
+      "id": "rail_edges",
+      "varName": "railEdges",
+      "columns": [
+        {
+          "name": "corridorId",
+          "dbName": "corridor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false,
+          "references": "corridors"
+        },
+        {
+          "name": "operator",
+          "dbName": "operator",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "mode",
+          "dbName": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "lengthKm",
+          "dbName": "length_km",
+          "type": "doublePrecision",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "reverseCostWeight",
+          "dbName": "reverse_cost_weight",
+          "type": "doublePrecision",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "geometry",
+          "dbName": "geometry",
+          "type": "geographyLineString",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        }
+      ],
+      "domains": [
+        "rail"
+      ]
+    },
+    {
+      "id": "rail_lines",
+      "varName": "railLines",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "slug",
+          "dbName": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "unique": true,
+          "notNull": true
+        },
+        {
+          "name": "name",
+          "dbName": "name",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "operator",
+          "dbName": "operator",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "description",
+          "dbName": "description",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "geometry",
+          "dbName": "geometry",
+          "type": "geographyMultiLineString",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "properties",
+          "dbName": "properties",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "rail"
+      ]
+    },
+    {
+      "id": "rail_nodes",
+      "varName": "railNodes",
+      "columns": [
+        {
+          "name": "name",
+          "dbName": "name",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "kind",
+          "dbName": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "corridorId",
+          "dbName": "corridor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false,
+          "references": "corridors"
+        }
+      ],
+      "domains": [
+        "rail"
+      ]
+    },
+    {
+      "id": "saved_routes",
+      "varName": "savedRoutes",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "userId",
+          "dbName": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true,
+          "references": "users"
+        },
+        {
+          "name": "name",
+          "dbName": "name",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "origin",
+          "dbName": "origin",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "destination",
+          "dbName": "destination",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "segments",
+          "dbName": "segments",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "geometry",
+          "dbName": "geometry",
+          "type": "jsonb",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "reverse",
+          "dbName": "reverse",
+          "type": "boolean",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "curated",
+          "dbName": "curated",
+          "type": "boolean",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "platform"
+      ]
+    },
+    {
+      "id": "users",
+      "varName": "users",
+      "columns": [
+        {
+          "name": "id",
+          "dbName": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "cognitoSub",
+          "dbName": "cognito_sub",
+          "type": "text",
+          "primaryKey": false,
+          "unique": true,
+          "notNull": true
+        },
+        {
+          "name": "email",
+          "dbName": "email",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        },
+        {
+          "name": "name",
+          "dbName": "name",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": false
+        },
+        {
+          "name": "role",
+          "dbName": "role",
+          "type": "text",
+          "primaryKey": false,
+          "unique": false,
+          "notNull": true
+        }
+      ],
+      "domains": [
+        "directory",
+        "platform"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "conversations.user_id->users",
+      "from": "conversations",
+      "to": "users",
+      "label": "user_id"
+    },
+    {
+      "id": "chat_messages.conversation_id->conversations",
+      "from": "chat_messages",
+      "to": "conversations",
+      "label": "conversation_id"
+    },
+    {
+      "id": "corridors.description->rail_lines",
+      "from": "corridors",
+      "to": "rail_lines",
+      "label": "description"
+    },
+    {
+      "id": "directory_listings.owner_user_id->users",
+      "from": "directory_listings",
+      "to": "users",
+      "label": "owner_user_id"
+    },
+    {
+      "id": "directory_listings.organization_id->organizations",
+      "from": "directory_listings",
+      "to": "organizations",
+      "label": "organization_id"
+    },
+    {
+      "id": "featured_placements.link_url->directory_listings",
+      "from": "featured_placements",
+      "to": "directory_listings",
+      "label": "link_url"
+    },
+    {
+      "id": "featured_placements.corridor_id->corridors",
+      "from": "featured_placements",
+      "to": "corridors",
+      "label": "corridor_id"
+    },
+    {
+      "id": "rail_nodes.corridor_id->corridors",
+      "from": "rail_nodes",
+      "to": "corridors",
+      "label": "corridor_id"
+    },
+    {
+      "id": "rail_edges.corridor_id->corridors",
+      "from": "rail_edges",
+      "to": "corridors",
+      "label": "corridor_id"
+    },
+    {
+      "id": "saved_routes.user_id->users",
+      "from": "saved_routes",
+      "to": "users",
+      "label": "user_id"
+    }
+  ],
+  "domains": {
+    "rail": {
+      "label": "Rail & corridors",
+      "tables": [
+        "rail_lines",
+        "corridors",
+        "rail_nodes",
+        "rail_edges"
+      ]
+    },
+    "directory": {
+      "label": "Directory",
+      "tables": [
+        "users",
+        "organizations",
+        "directory_listings",
+        "featured_placements",
+        "corridors"
+      ]
+    },
+    "platform": {
+      "label": "Platform",
+      "tables": [
+        "users",
+        "conversations",
+        "chat_messages",
+        "saved_routes",
+        "intents",
+        "leads",
+        "analytics_events"
+      ]
+    }
+  },
+  "api": {
+    "tags": [
+      {
+        "name": "Analytics",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/v1/analytics/events",
+            "summary": "Record product analytics events"
+          }
+        ]
+      },
+      {
+        "name": "Auth",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/me",
+            "summary": "Current user profile"
+          }
+        ]
+      },
+      {
+        "name": "Chat",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/chat/conversations",
+            "summary": "List my conversations"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/chat/conversations/{id}",
+            "summary": "Get a conversation's messages"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/chat/messages",
+            "summary": "Send a message to the assistant"
+          }
+        ]
+      },
+      {
+        "name": "Corridors",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/v1/admin/corridors",
+            "summary": "Create a corridor"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/admin/corridors/{id}",
+            "summary": "Get a corridor with geometry (admin)"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/admin/corridors/{id}",
+            "summary": "Update a corridor"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/admin/corridors/{id}",
+            "summary": "Delete a corridor"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/corridors",
+            "summary": "List corridors"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/corridors/{slug}",
+            "summary": "Get a corridor with geometry"
+          }
+        ]
+      },
+      {
+        "name": "Directory",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/directory",
+            "summary": "Browse published listings"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/directory",
+            "summary": "Submit a listing"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/directory/{id}",
+            "summary": "Update a listing"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/directory/{idOrSlug}",
+            "summary": "Get one listing by id or slug"
+          }
+        ]
+      },
+      {
+        "name": "Featured placements",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/admin/placements",
+            "summary": "List all placements (admin)"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/admin/placements",
+            "summary": "Create a placement"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/admin/placements/{id}",
+            "summary": "Update a placement"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/admin/placements/{id}",
+            "summary": "Delete a placement"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/featured-placements",
+            "summary": "Get placements for a surface"
+          }
+        ]
+      },
+      {
+        "name": "Intents",
+        "endpoints": [
+          {
+            "method": "PUT",
+            "path": "/v1/admin/intents/{slug}",
+            "summary": "Create or update a pathway"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/admin/intents/{slug}",
+            "summary": "Delete a pathway"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/intents",
+            "summary": "List guided pathways"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/intents/{slug}",
+            "summary": "Get a pathway with resolved content"
+          }
+        ]
+      },
+      {
+        "name": "Knowledge Base",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/admin/knowledge/documents",
+            "summary": "List corpus documents"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/admin/knowledge/documents",
+            "summary": "Delete a corpus document"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/admin/knowledge/sync",
+            "summary": "Start an ingestion job"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/admin/knowledge/sync-platform",
+            "summary": "Export platform data into the knowledge corpus"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/admin/knowledge/sync/{jobId}",
+            "summary": "Get ingestion job status"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/admin/knowledge/text",
+            "summary": "Add a text knowledge snippet"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/admin/knowledge/uploads",
+            "summary": "Get a presigned upload URL for a file"
+          }
+        ]
+      },
+      {
+        "name": "Leads",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/admin/leads",
+            "summary": "List captured leads (admin)"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/admin/leads/{id}",
+            "summary": "Update lead status (admin)"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/leads",
+            "summary": "Capture a lead"
+          }
+        ]
+      },
+      {
+        "name": "Map",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/map/layers",
+            "summary": "List available map layers"
+          }
+        ]
+      },
+      {
+        "name": "Meta",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/health",
+            "summary": "Health check"
+          }
+        ]
+      },
+      {
+        "name": "Rail lines",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/admin/raillines",
+            "summary": "List rail lines (admin)"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/admin/raillines",
+            "summary": "Import a rail line from GeoJSON"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/admin/raillines/{id}",
+            "summary": "Get a rail line with geometry (admin)"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/admin/raillines/{id}",
+            "summary": "Update a rail line"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/admin/raillines/{id}",
+            "summary": "Delete a rail line and its derived graph"
+          },
+          {
+            "method": "PATCH",
+            "path": "/v1/admin/raillines/{id}/logo",
+            "summary": "Attach an uploaded logo to a rail line"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/admin/raillines/{id}/logo",
+            "summary": "Remove a rail line logo"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/admin/raillines/{id}/logo/upload-url",
+            "summary": "Get a presigned URL to upload a rail line logo"
+          }
+        ]
+      },
+      {
+        "name": "Realtime",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/realtime/token",
+            "summary": "WebSocket connection config"
+          }
+        ]
+      },
+      {
+        "name": "Routing",
+        "endpoints": [
+          {
+            "method": "POST",
+            "path": "/v1/routes",
+            "summary": "Compute and save a route"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/routes",
+            "summary": "List my saved routes"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/routes/{id}",
+            "summary": "Get a saved route"
+          },
+          {
+            "method": "DELETE",
+            "path": "/v1/routes/{id}",
+            "summary": "Delete a saved route"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/routes/find",
+            "summary": "Find a route across the rail network"
+          }
+        ]
+      },
+      {
+        "name": "Search",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/search",
+            "summary": "Search the directory"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/search/suggest",
+            "summary": "Autocomplete suggestions"
+          }
+        ]
+      },
+      {
+        "name": "Users",
+        "endpoints": [
+          {
+            "method": "GET",
+            "path": "/v1/admin/users",
+            "summary": "List users (admin, paged)"
+          }
+        ]
+      }
+    ]
+  }
+}
